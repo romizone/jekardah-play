@@ -1,74 +1,54 @@
-/* JEK — kerangka game mini Jekardah Play (murni, tanpa dependency)
-   Kontrak:
-     JEK.boot(slug, function(g){ g.run(Game); })
-     function Game(ctx, S){ return { update(dt), draw(ctx) } }
-     S: beep(f,dur,type), onKey(k,fn), hi(), saveHi(v), over(title,sub,extra)
-*/
-window.JEK = (function(){
-  function hiKey(slug){ return "jek_hi_" + slug; }
-
-  function loop(update, draw){
-    let last = 0;
-    function frame(now){
-      const dtms = Math.min(50, now - last); last = now;
-      const dt = Math.max(1, Math.round(dtms / (1000/60))); // tick @60fps
-      try{ update(dt); draw(); }catch(e){}
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function beep(freq, dur, type, vol){
-    try{
-      const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
-      if(!beep.ctx) beep.ctx = new AC();
-      if(beep.ctx.state === "suspended") beep.ctx.resume();
-      const o = beep.ctx.createOscillator(), gn = beep.ctx.createGain();
-      o.type = type || "square"; o.frequency.value = freq;
-      gn.gain.value = (vol == null ? 0.06 : vol);
-      gn.gain.exponentialRampToValueAtTime(0.0001, beep.ctx.currentTime + dur);
-      o.connect(gn); gn.connect(beep.ctx.destination);
-      o.start(); o.stop(beep.ctx.currentTime + dur + 0.02);
-    }catch(e){}
-  }
-
-  function boot(slug, cb){
-    document.addEventListener("DOMContentLoaded", function(){
-      const cv  = document.getElementById("cv");
-      const ui  = document.getElementById("ui");
-      const btn = document.getElementById("btnStart");
-      const h1  = ui ? ui.querySelector("h1") : null;
-      const msg = document.getElementById("msg");
-
-      btn.addEventListener("click", function(){
-        if(ui) ui.classList.add("hidden");
-        const ctx = cv.getContext("2d");
-        const keys = {};
-        const S = {
-          cv, W: cv.width, H: cv.height, beep: beep,
-          onKey: function(key, fn){ keys[String(key).toLowerCase()] = fn; },
-          hi: function(){ return +(localStorage.getItem(hiKey(slug)) || 0); },
-          saveHi: function(v){ if(v > this.hi()) localStorage.setItem(hiKey(slug), v); },
-          over: function(title, sub, extra){
-            if(!ui) return;
-            ui.classList.remove("hidden");
-            if(h1) h1.textContent = title || "GAME OVER";
-            if(msg) msg.innerHTML = (sub || "") + (extra ? "<br>" + extra : "") +
-              "<br><br>Rekor: " + ( +(localStorage.getItem(hiKey(slug)) || 0) );
-            btn.textContent = "↻ MAIN LAGI";
-          }
-        };
-        window.addEventListener("keydown", function(e){
-          const k = e.key.toLowerCase();
-          if(keys[k]){ e.preventDefault(); keys[k](); }
-        });
-        cb({ run: function(G){
-          const inst = G(ctx, S);
-          if(inst && inst.update && inst.draw) loop(inst.update, function(){ inst.draw(ctx); });
-        }});
-      });
-    });
-  }
-
-  return { boot, beep };
+'use strict';
+(() => {
+ const $=id=>document.getElementById(id), cv=$('cv'),ctx=cv.getContext('2d'), reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const W=320,H=480,T=32,STEP=1000/60, key='jek_hi_temple-runout',dirs={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]}, bindings={arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'};
+ let state='title',score=0,artifacts=0,lives=3,time=0,tick=0,freeze=0,invincible=0,shake=0,moveClock=0,guardClock=0,bannerClock=0,sound=true,won=false,player,map,arts,guards,particles=[],floats=[];
+ const held=new Map(); let audio;
+ function hi(){try{return Number(localStorage.getItem(key))||0}catch{return 0}}
+ function beep(freq){if(!sound)return;try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audio ||= new AC();if(audio.state==='suspended')audio.resume();const o=audio.createOscillator(),g=audio.createGain();o.type='triangle';o.frequency.value=freq;g.gain.setValueAtTime(.05,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.13);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.14)}catch{}}
+ function icon(name){const item=$('iconLibrary').content.querySelector('[data-icon="'+name+'"]');return item?item.innerHTML:''}
+ function banner(name,text){$('banner').innerHTML=icon(name)+' '+text;$('banner').classList.remove('hidden');bannerClock=130}
+ function hud(){$('score').textContent=score;$('ar').textContent=artifacts+'/3';$('lives').textContent=lives;$('tm').textContent=Math.floor(time/60)+' dtk';document.querySelectorAll('.slot').forEach((s,i)=>s.classList.toggle('filled',i<artifacts));$('record').textContent='Rekor: '+hi()}
+ function clearInput(){held.clear();document.querySelectorAll('#pads button').forEach(b=>b.classList.remove('active'))}
+ function start(){state='play';score=artifacts=time=tick=freeze=invincible=shake=moveClock=guardClock=0;lives=3;won=false;particles=[];floats=[];clearInput();
+  map=Array.from({length:15},(_,r)=>Array.from({length:10},(_,c)=>r===0||r===14||c===0||c===9|| (r%2===0&&c>1&&c<8&&c!==((r/2)%3)*2+2)?1:0));
+  player={r:1,c:1,x:48,y:48};arts=[{r:1,c:8},{r:13,c:1},{r:13,c:8}];guards=[{r:5,c:3,dir:1},{r:9,c:6,dir:-1},{r:11,c:4,dir:1}];buildLayer();$('ui').classList.remove('over');$('ui').classList.add('hidden');$('pause').disabled=false;banner('flag','Temukan 3 artefak');hud();beep(440)
+ }
+ function enterCard(){const card=document.querySelector('.card');card.style.animation='none';void card.offsetWidth;card.style.animation=''}
+ function end(win){state='over';won=win;clearInput();if(win)score+=3000;try{if(score>hi())localStorage.setItem(key,String(score))}catch{}
+  $('ui').classList.remove('hidden');$('ui').classList.add('over');$('title').textContent=win?'CANDI SELESAI':'TERTANGKAP';$('msg').textContent=win?'Ketiga artefak kembali bersinar. Perjalananmu menjadi legenda.':'Kabut menutup jejakmu. Coba jelajahi candi sekali lagi.';$('guide').classList.add('hidden');$('stats').classList.remove('hidden');const rank=win?'Master Candi':artifacts?'Pemburu Artefak':'Penjelajah Pemula';$('stats').innerHTML=[['trophy','Skor',score],['artifact','Artefak',artifacts+'/3'],['clock','Waktu',Math.floor(time/60)+' dtk'],['medal','Peringkat',rank]].map(([i,l,v])=>'<div class="stat">'+icon(i)+' '+l+'<strong>'+v+'</strong></div>').join('');$('btnStart').innerHTML=icon('flag')+' Main lagi';banner(win?'bolt':'skull',win?'Seluruh artefak ditemukan':'Perjalanan berakhir');enterCard();hud()
+ }
+ function pause(){if(state==='play'){state='pause';clearInput();$('ui').classList.remove('hidden');$('ui').classList.add('over');$('title').textContent='ISTIRAHAT';$('msg').textContent='Obormu tetap menyala. Lanjutkan saat siap.';$('guide').classList.add('hidden');$('stats').classList.add('hidden');$('btnStart').innerHTML=icon('pause')+' Lanjutkan';banner('pause','Permainan dijeda')}else if(state==='pause'){state='play';$('ui').classList.add('hidden');banner('flag','Lanjut menjelajah')}}
+ function burst(x,y,n,color){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*2,vy:(Math.random()-.7)*2,life:30+Math.random()*20,color})}
+ function collect(){for(let i=arts.length-1;i>=0;i--)if(arts[i].r===player.r&&arts[i].c===player.c){arts.splice(i,1);artifacts++;score+=500;floats.push({x:player.x,y:player.y,text:'+500',life:55});burst(player.x,player.y,20,'#ffe099');beep(880);hud();if(artifacts===3){end(true);return}}}
+ function catchPlayer(){if(state!=='play'||invincible>0)return;lives--;freeze=5;invincible=100;shake=reduced?0:16;burst(player.x,player.y,32,'#e5c3aa');beep(140);hud();if(lives<=0)end(false);else{player.r=player.c=1;banner('skull','Tertangkap · '+lives+' nyawa tersisa')}}
+ function collision(){if(guards.some(g=>g.r===player.r&&g.c===player.c))catchPlayer()}
+ function move(dir){if(state!=='play'||freeze>0||!dirs[dir])return;const [dr,dc]=dirs[dir],r=player.r+dr,c=player.c+dc;if(map[r]?.[c]!==0)return;player.r=r;player.c=c;burst(player.x,player.y+10,3,'#b99b75');collect();collision()}
+ function press(k){k=String(k).toLowerCase();if(k==='enter'){if(state==='pause')pause();else if(state!=='play')start()}else if(k==='p')pause();else if(k==='m'){sound=!sound;$('sound').setAttribute('aria-pressed',String(sound));$('sound').setAttribute('aria-label',sound?'Matikan suara':'Aktifkan suara');$('sound').style.opacity=sound?'1':'.55'}else move(bindings[k]||k)}
+ $('btnStart').addEventListener('click',()=>state==='pause'?pause():start());$('pause').addEventListener('click',pause);$('sound').addEventListener('click',()=>press('m'));
+ window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(bindings[k]||['enter','p','m'].includes(k)){e.preventDefault();if(!e.repeat)press(k);if(bindings[k]&&state==='play')held.set('key:'+k,bindings[k])}});window.addEventListener('keyup',e=>held.delete('key:'+e.key.toLowerCase()));window.addEventListener('blur',()=>{clearInput();if(state==='play')pause()});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();if(state==='play')pause()}});
+ document.querySelectorAll('#pads button').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();if(state!=='play')return;b.setPointerCapture(e.pointerId);held.set(e.pointerId,b.dataset.dir);b.classList.add('active');move(b.dataset.dir)});const release=e=>{held.delete(e.pointerId);b.classList.toggle('active',Array.from(held.values()).includes(b.dataset.dir))};['pointerup','pointercancel','lostpointercapture'].forEach(n=>b.addEventListener(n,release))});
+ function update(){tick++;if(bannerClock>0&&!--bannerClock)$('banner').classList.add('hidden');if(state!=='play')return;if(freeze>0){freeze--;return}time++;if(invincible>0)invincible--;if(shake>0)shake--;if(++moveClock>=8){moveClock=0;for(const dir of new Set(held.values())){move(dir);if(state!=='play')break}}if(state!=='play')return;player.x+=(player.c*T+16-player.x)*.35;player.y+=(player.r*T+16-player.y)*.35;if(++guardClock>=20){guardClock=0;guards.forEach(g=>{let c=g.c+g.dir;if(map[g.r][c]!==0){g.dir*=-1;c=g.c+g.dir}if(map[g.r][c]===0)g.c=c});collision()}particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life--});particles=particles.filter(p=>p.life>0);floats.forEach(f=>{f.y-=.45;f.life--});floats=floats.filter(f=>f.life>0);if(time%30===0)hud()}
+ const scenery=document.createElement('canvas');scenery.width=W;scenery.height=H;const back=scenery.getContext('2d');
+ function temple(x,y,scale){back.save();back.translate(x,y);back.scale(scale,scale);back.fillStyle='#302935';for(let i=0;i<6;i++)back.fillRect(-60+i*8,-i*12,120-i*16,14);back.fillRect(-4,-90,8,30);back.restore()}
+ function buildLayer(){back.fillStyle='#24232b';back.fillRect(0,0,W,H);temple(160,110,1.6);back.fillStyle='#202a29';for(const x of [12,302]){back.fillRect(x-4,15,8,120);for(let i=0;i<5;i++){back.beginPath();back.arc(x+(i-2)*12,30+Math.abs(i-2)*10,27,0,7);back.fill()}}for(let r=0;r<15;r++)for(let c=0;c<10;c++){const x=c*T,y=r*T;if(map?.[r][c]){back.fillStyle=r<3?'#373337':'#393a36';back.fillRect(x+1,y+1,30,30);back.fillStyle='#575143';back.fillRect(x+3,y+3,26,2);back.fillStyle='#252b2c';back.fillRect(x+10,y+12,12,9);back.fillRect(x+14,y+8,4,4)}else{back.fillStyle='rgba(17,22,26,.86)';back.fillRect(x,y,T,T);back.strokeStyle='#323535';back.strokeRect(x+1,y+1,30,30)}}
+ // Panorama fajar pada lapisan jauh, di-cache sekali.
+ const dawn=back.createLinearGradient(0,0,0,32);dawn.addColorStop(0,'#30283f');dawn.addColorStop(1,'#775644');back.fillStyle=dawn;back.fillRect(0,0,W,32);temple(160,32,.32);back.fillStyle='#252e2d';for(const bx of [45,270]){back.fillRect(bx,9,3,23);for(let j=0;j<3;j++){back.beginPath();back.arc(bx+(j-1)*8,8,10,0,7);back.fill()}}
+ // Arca, lampion, dan sulur hanya di dinding tepi, di-cache sekali.
+ for(const y of [160,320])for(const x of [16,304]){back.fillStyle='#656052';back.fillRect(x-9,y-14,18,25);back.fillStyle='#303735';back.fillRect(x-6,y-7,4,3);back.fillRect(x+2,y-7,4,3);back.fillRect(x-4,y+4,8,2)}for(const x of [16,304]){back.strokeStyle='#baa27c';back.beginPath();back.moveTo(x,45);back.lineTo(x,66);back.stroke();back.fillStyle='#c28147';back.fillRect(x-5,66,10,14)}back.fillStyle='rgba(8,10,22,.22)';back.fillRect(0,0,W,H)
+ }
+ function orb(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+ function draw(){ctx.save();if(shake&&!reduced)ctx.translate(Math.sin(tick*2)*2,Math.cos(tick*3)*2);ctx.drawImage(scenery,0,0);const motion=reduced?0:tick;
+ for(let layer=0;layer<3;layer++){const x=((motion*(.12+layer*.06)+layer*140)%500)-100,g=ctx.createRadialGradient(x,130+layer*110,0,x,130+layer*110,130);g.addColorStop(0,'rgba(205,191,173,.055)');g.addColorStop(1,'rgba(205,191,173,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
+ for(let i=0;i<18;i++){const x=(i*53+motion*.13)%W,y=(i*79-motion*.09+H*10)%H;orb(x,y,1,'rgba(255,218,136,.35)')}
+ for(const x of [16,304])for(const y of [80,224,416]){const rad=ctx.createRadialGradient(x,y,0,x,y,23);rad.addColorStop(0,'rgba(255,168,70,.25)');rad.addColorStop(1,'rgba(255,168,70,0)');ctx.fillStyle=rad;ctx.fillRect(x-23,y-23,46,46);orb(x,y,3+Math.sin(motion*.17+y)*.7,'#ffbf66')}
+ ctx.strokeStyle='#647052';for(let i=0;i<14;i++){const x=i%2?310:8,y=100+i*24;ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+Math.sin(motion*.025+i)*3,y-6,x+4,y-9);ctx.stroke()}
+ if(!reduced&&tick%1600<260){const x=tick%1600*1.5-30;ctx.strokeStyle='#949080';for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(x+i*17,23+i*4);ctx.lineTo(x+5+i*17,20+i*4);ctx.lineTo(x+10+i*17,23+i*4);ctx.stroke()}}
+ for(const a of arts||[]){const x=a.c*T+16,y=a.r*T+16;ctx.shadowColor='#ffd06e';ctx.shadowBlur=14;ctx.fillStyle='#ffdc87';ctx.beginPath();ctx.moveTo(x,y-11);ctx.lineTo(x+8,y);ctx.lineTo(x+5,y+9);ctx.lineTo(x-5,y+9);ctx.lineTo(x-8,y);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff7d9';ctx.fillRect(x-2,y-6,3,8)}
+ for(const g of guards||[]){const x=g.c*T+16,y=g.r*T+16;ctx.fillStyle='#818a86';ctx.fillRect(x-8,y-10,16,21);ctx.fillStyle='#adb5a4';ctx.fillRect(x-7,y-14,14,9);ctx.fillStyle='#ff8f7b';ctx.fillRect(x-4,y-11,3,3);ctx.fillRect(x+2,y-11,3,3)}
+ if(player&&(!invincible||tick%10<6)){const x=player.x,y=player.y;orb(x,y+11,9,'#13171d');ctx.shadowColor='#ffe9ae';ctx.shadowBlur=9;ctx.fillStyle='#8fdfbd';ctx.fillRect(x-6,y-3,12,14);ctx.fillStyle='#ffdeb0';ctx.fillRect(x-5,y-13,10,10);ctx.fillStyle='#f9d48b';ctx.fillRect(x-8,y-16,16,4);ctx.shadowBlur=0;ctx.fillStyle='#ffdeb0';ctx.fillRect(x+6,y-1,7,3);orb(x+14,y-4,3,'#ffca75')}
+ for(const p of particles){ctx.globalAlpha=Math.min(1,p.life/20);orb(p.x,p.y,1.5,p.color)}ctx.globalAlpha=1;ctx.font='bold 15px system-ui';ctx.textAlign='center';for(const f of floats){ctx.globalAlpha=f.life/55;ctx.fillStyle='#fff0ac';ctx.fillText(f.text,f.x,f.y-18)}ctx.globalAlpha=1;const vignette=ctx.createRadialGradient(160,240,80,160,240,290);vignette.addColorStop(0,'rgba(0,0,0,0)');vignette.addColorStop(1,'rgba(5,5,16,.7)');ctx.fillStyle=vignette;ctx.fillRect(0,0,W,H);ctx.restore()
+ }
+ window.__tr={get state(){return state},get score(){return score},get artifacts(){return artifacts},press,start};
+ buildLayer();hud();let last=null,accumulator=0;function frame(now){if(last===null)last=now;accumulator+=Math.max(0,Math.min(100,now-last));last=now;while(accumulator>=STEP){update();accumulator-=STEP}draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
 })();
