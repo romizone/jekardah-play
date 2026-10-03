@@ -1,74 +1,45 @@
-/* JEK — kerangka game mini Jekardah Play (murni, tanpa dependency)
-   Kontrak:
-     JEK.boot(slug, function(g){ g.run(Game); })
-     function Game(ctx, S){ return { update(dt), draw(ctx) } }
-     S: beep(f,dur,type), onKey(k,fn), hi(), saveHi(v), over(title,sub,extra)
-*/
-window.JEK = (function(){
-  function hiKey(slug){ return "jek_hi_" + slug; }
-
-  function loop(update, draw){
-    let last = 0;
-    function frame(now){
-      const dtms = Math.min(50, now - last); last = now;
-      const dt = Math.max(1, Math.round(dtms / (1000/60))); // tick @60fps
-      try{ update(dt); draw(); }catch(e){}
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function beep(freq, dur, type, vol){
-    try{
-      const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
-      if(!beep.ctx) beep.ctx = new AC();
-      if(beep.ctx.state === "suspended") beep.ctx.resume();
-      const o = beep.ctx.createOscillator(), gn = beep.ctx.createGain();
-      o.type = type || "square"; o.frequency.value = freq;
-      gn.gain.value = (vol == null ? 0.06 : vol);
-      gn.gain.exponentialRampToValueAtTime(0.0001, beep.ctx.currentTime + dur);
-      o.connect(gn); gn.connect(beep.ctx.destination);
-      o.start(); o.stop(beep.ctx.currentTime + dur + 0.02);
-    }catch(e){}
-  }
-
-  function boot(slug, cb){
-    document.addEventListener("DOMContentLoaded", function(){
-      const cv  = document.getElementById("cv");
-      const ui  = document.getElementById("ui");
-      const btn = document.getElementById("btnStart");
-      const h1  = ui ? ui.querySelector("h1") : null;
-      const msg = document.getElementById("msg");
-
-      btn.addEventListener("click", function(){
-        if(ui) ui.classList.add("hidden");
-        const ctx = cv.getContext("2d");
-        const keys = {};
-        const S = {
-          cv, W: cv.width, H: cv.height, beep: beep,
-          onKey: function(key, fn){ keys[String(key).toLowerCase()] = fn; },
-          hi: function(){ return +(localStorage.getItem(hiKey(slug)) || 0); },
-          saveHi: function(v){ if(v > this.hi()) localStorage.setItem(hiKey(slug), v); },
-          over: function(title, sub, extra){
-            if(!ui) return;
-            ui.classList.remove("hidden");
-            if(h1) h1.textContent = title || "GAME OVER";
-            if(msg) msg.innerHTML = (sub || "") + (extra ? "<br>" + extra : "") +
-              "<br><br>Rekor: " + ( +(localStorage.getItem(hiKey(slug)) || 0) );
-            btn.textContent = "↻ MAIN LAGI";
-          }
-        };
-        window.addEventListener("keydown", function(e){
-          const k = e.key.toLowerCase();
-          if(keys[k]){ e.preventDefault(); keys[k](); }
-        });
-        cb({ run: function(G){
-          const inst = G(ctx, S);
-          if(inst && inst.update && inst.draw) loop(inst.update, function(){ inst.draw(ctx); });
-        }});
-      });
-    });
-  }
-
-  return { boot, beep };
+﻿'use strict';
+(() => {
+ const $=id=>document.getElementById(id), cv=$('cv'), ctx=cv.getContext('2d');
+ const KEY='jek_hi_nasi-goreng-chef', ingredients=['ayam','udang','sayur','telur'];
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ let state='title',score=0,ticks=0,lives=3,orders=[],wok=null,holding=null,spawn=120,served=0,missed=0,muted=false,clock=0,stop=0,shake=0,particles=[],floats=[],bannerTime=0,audio;
+ const held=new Map();
+ function hi(){try{return Number(localStorage.getItem(KEY))||0}catch{return 0}}
+ function save(){try{if(score>hi())localStorage.setItem(KEY,String(score))}catch{}}
+ function beep(freq=600,dur=.06){if(muted)return;try{audio ||= new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;o.type='triangle';g.gain.setValueAtTime(.06,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+dur)}catch{}}
+ function rank(){return score>=1000?'Chef legendaris':score>=500?'Andalan warung':score>=200?'Juru masak cekatan':'Chef pemula'}
+ function hud(){ $('score').textContent='Rp '+score;$('time').textContent=Math.floor(ticks/3600)+':'+String(Math.floor(ticks/60)%60).padStart(2,'0');$('lives').textContent='♥ '.repeat(Math.max(0,lives)).trim()||'—';}
+ function announce(text){$('banner').textContent=text;bannerTime=100;$('banner').classList.add('show')}
+ function setState(next){state=next;$('overlay').hidden=state==='play';$('pause').disabled=state==='title'||state==='over';$('pause').textContent=state==='pause'?'Lanjut':'Jeda';document.querySelectorAll('[data-action]').forEach(b=>b.disabled=state!=='play');held.clear();document.querySelectorAll('.held').forEach(b=>b.classList.remove('held'));if(state==='play')return;$('guide').hidden=state!=='title';$('title').textContent=state==='title'?'Nasi Goreng Chef':state==='pause'?'Warung dijeda':'Dapur tutup!';$('eyebrow').textContent=state==='over'?rank().toUpperCase():'WARUNG MALAM • JEKARDAH';$('description').textContent=state==='pause'?'Tarik napas. Pesanan dan wok menunggu kamu.':state==='over'?'Terima kasih sudah memasak. Siap buka warung lagi?':'Wok panas, pelanggan lapar. Jaga antrean dan raih rekor warungmu!';$('stats').textContent=state==='title'?'Rekor: Rp '+hi():`Rp ${score} · ${served} tersaji · ${missed} gagal · ${Math.floor(ticks/60)} detik · Rekor Rp ${hi()}`;$('start').textContent=state==='pause'?'Lanjut memasak':state==='over'?'Buka lagi':'Buka warung';}
+ function start(){score=0;ticks=0;lives=3;orders=[];wok=null;holding=null;spawn=120;served=0;missed=0;particles=[];floats=[];stop=0;newOrder();setState('play');hud();announce('Warung buka! Ambil nasi → masukkan ke wok');beep();}
+ function pause(){if(state==='play')setState('pause');else if(state==='pause'){setState('play');announce('Lanjut memasak!')}}
+ function newOrder(){orders.push({b:ingredients[Math.random()*4|0],pat:600+Math.random()*300})}
+ function juice(text,good=true){floats.push({text,x:160,y:230,life:65,color:good?'#c8f3a1':'#ff9c81'});if(!reduced){shake=good?2:4;stop=good?3:5;for(let i=0;i<18;i++)particles.push({x:160,y:265,vx:(Math.random()-.5)*4,vy:-Math.random()*4,life:35,color:good?'#ffda76':'#ff9475'});if(navigator.vibrate)navigator.vibrate(good?15:[20,20,20]);}}
+ function fail(text){lives--;missed++;beep(160,.18);juice(text,false);if(lives<=0){save();setState('over')}hud()}
+ function select(i){if(state!=='play')return;if(holding){announce('Tangan penuh — masukkan ke wok atau buang');return}if(orders[i]){holding=orders[i].b;beep(700);announce('Bahan '+holding+' diambil — tekan Wok')}}
+ function press(n){if(state!=='play')return;
+ if(n===1){if(wok&&!wok.bahan&&!holding&&orders.length)select(0);else if(orders.length<4){newOrder();beep();announce('Pesanan baru datang')}else announce('Antrean penuh — layani pelanggan');}
+ if(n===2){if(!holding){holding='nasi';beep(500);announce('Nasi diambil — tekan Wok')}else announce('Tangan penuh — tekan Wok atau Buang');}
+ if(n===3){if(holding==='nasi'&&!wok){wok={bahan:null,cook:0,burnt:false};holding=null;beep(400);announce('Pilih bahan dari kartu pesanan / tombol 1')}else if(holding&&holding!=='nasi'&&wok&&!wok.bahan){wok.bahan=holding;holding=null;beep(550);announce('Masak dan sajikan sebelum gosong!')}else announce('Masukkan nasi dahulu, lalu bahan pesanan');}
+ if(n===4){if(wok&&wok.bahan&&!wok.burnt){const i=orders.findIndex(o=>o.b===wok.bahan);if(i>=0){orders.splice(i,1);score+=50;served++;beep(880,.1);juice('+Rp 50');}else fail('Pesanan tidak cocok');wok=null;}else announce(wok?.burnt?'Sudah gosong — tekan Buang':'Wok belum berisi nasi dan bahan');}
+ if(n===5){if(wok){wok=null;beep(220);juice('Wok dibersihkan')}else if(holding){holding=null;beep(220);}else announce('Dapur sudah bersih');}hud();}
+ function update(){clock++;if(bannerTime>0&&!--bannerTime)$('banner').classList.remove('show');particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.life--});particles=particles.filter(p=>p.life>0);floats.forEach(p=>{p.y-=.55;p.life--});floats=floats.filter(p=>p.life>0);shake*=.85;if(state!=='play')return;if(stop>0){stop--;return}ticks++;if(--spawn<=0){if(orders.length<4)newOrder();spawn=Math.max(90,220-ticks/60)}for(let i=orders.length-1;i>=0;i--){if(--orders[i].pat<=0){orders.splice(i,1);fail('Pelanggan pergi');if(state!=='play')return}}if(wok&&wok.bahan){wok.cook++;if(wok.cook>300)wok.burnt=true;if(wok.burnt&&wok.cook>360&&Math.random()<.02){wok=null;fail('Masakan hangus')}}hud();}
+ function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
+ function text(s,x,y,size=11,color='#fff0ce',align='center'){ctx.fillStyle=color;ctx.font=`600 ${size}px system-ui`;ctx.textAlign=align;ctx.fillText(s,x,y)}
+ function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+ function draw(){ctx.save();rect(0,0,320,480,'#213c3c');if(!reduced)ctx.translate(Math.sin(clock*2)*shake,Math.cos(clock*3)*shake);for(let y=70;y<300;y+=32){rect(0,y,320,1,'#345352');for(let x=(y%64?0:32);x<320;x+=64)rect(x,y,1,32,'#345352')}rect(12,75,296,45,'#172e2e');text('WARUNG NASI GORENG',160,95,16,'#ffdc82');text('Hangat dari wok • Segar setiap pesanan',160,110,9,'#a9c7ae');for(let i=0;i<3;i++){const lx=35+i*125;rect(lx,50,1,12,'#c6a15b');circle(lx,66,8,'#ffc46b');circle(lx,66,12+(!reduced?Math.sin(clock/35+i)*2:0),'#ffd58322')}
+ orders.forEach((o,i)=>{const x=12+i*76;rect(x,135,68,77,'#eee5c8');circle(x+34,152,10,['#dc9879','#bd9268','#e3b28a','#bf7e64'][i]);rect(x+23,162,22,12,['#5b9d8e','#b07565','#718ca9','#a09562'][i]);circle(x+31,152,1,'#243238');circle(x+37,152,1,'#243238');text(o.b.toUpperCase(),x+34,189,10,'#273d36');rect(x+6,198,56,4,'#d4c6a9');rect(x+6,198,56*Math.min(1,o.pat/900),4,o.pat<200?'#d85740':'#5c9665');});if(!orders.length)text('Antrean kosong • tekan 1 untuk pesanan',160,171,11,'#b0c5b6');
+ rect(0,229,320,91,'#a37748');rect(0,229,320,7,'#e1b57b');rect(8,247,65,58,'#5b6551');circle(40,269,20,'#c2b899');circle(40,266,16,'#fff0cd');text('NASI',40,297,10);rect(95,246,143,65,'#203334');rect(105,252,123,44,'#48605c');if(wok)for(let i=0;i<5;i++)circle(132+i*14,286,5+(reduced?0:Math.sin(clock/4+i)*2),'#ffb04a');ctx.lineWidth=5;ctx.strokeStyle='#172829';ctx.beginPath();ctx.moveTo(185,268);ctx.lineTo(235,250);ctx.stroke();circle(160,268,34,'#17282b');circle(160,266,28,wok?(wok.burnt?'#40352e':'#dcb967'):'#506665');if(wok){for(let i=0;i<22;i++){let x=140+(i*17%40),y=251+(i*13%28);rect(x,y,4,2,wok.burnt?'#252826':'#fff0ce')}if(wok.bahan)for(let i=0;i<7;i++)rect(143+i*5,260+i%3*5,4,4,'#a2573b');if(!reduced&&wok.bahan)for(let i=0;i<4;i++){const phase=(clock+i*18)%70;circle(142+i*12+Math.sin(phase/12)*3,248-phase/2,3+phase/20,`rgba(255,239,201,${(1-phase/70)*.35})`)}}
+ rect(256,256,50,39,'#d6c5a0');circle(280,270,15,'#fff1d1');text('SAJI',280,301,10);rect(0,321,320,159,'#172d30');text(wok?.burnt?'GOSONG! BUANG SEKARANG':wok?.bahan?'WOK: '+wok.bahan.toUpperCase():wok?'PILIH BAHAN PESANAN':'SIAP MEMASAK',160,345,13,wok?.burnt?'#ff9c81':'#ffdc82');if(wok?.bahan){rect(40,356,240,8,'#3c5350');rect(40,356,240*Math.min(1,wok.cook/360),8,wok.burnt?'#ee7059':'#b2d58c');text('Sajikan sebelum 5 detik • '+(wok.cook/60).toFixed(1)+' dtk',160,383,10,'#bbcfbc')}else text('Nasi → Wok → Bahan → Wok → Saji',160,378,11,'#bbcfbc');circle(64,427,18,'#d99e76');rect(45,409,38,8,'#fff0d1');circle(53,406,10,'#fff0d1');circle(66,402,12,'#fff0d1');circle(78,406,9,'#fff0d1');rect(44,443,40,37,'#f0e6cf');circle(59,426,1.5,'#243238');circle(70,426,1.5,'#243238');text(holding?'Di tangan: '+holding:'Tangan kosong',192,428,12);text('Rekor Rp '+hi(),192,450,10,'#a8c4ae');particles.forEach(p=>{ctx.globalAlpha=p.life/35;rect(p.x,p.y,3,3,p.color)});floats.forEach(p=>{ctx.globalAlpha=Math.min(1,p.life/15);text(p.text,p.x,p.y,16,p.color)});ctx.restore();}
+ function fit(){const r=$('view').getBoundingClientRect(),w=Math.max(1,Math.min(r.width,r.height*2/3,480));$('screen').style.width=w+'px';$('screen').style.height=w*1.5+'px';$('screen').style.setProperty('--u',w/320)}
+ function release(e){const b=held.get(e.pointerId);held.delete(e.pointerId);if(b&&![...held.values()].includes(b))b.classList.remove('held')}
+ document.querySelectorAll('[data-action]').forEach(b=>{b.addEventListener('pointerdown',e=>{if(state!=='play')return;e.preventDefault();held.set(e.pointerId,b);b.setPointerCapture(e.pointerId);b.classList.add('held');press(Number(b.dataset.action))});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,release));b.addEventListener('click',e=>{if(e.detail===0)press(Number(b.dataset.action))})});
+ cv.addEventListener('pointerdown',e=>{if(state!=='play')return;e.preventDefault();cv.setPointerCapture(e.pointerId);const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)*320/r.width,y=(e.clientY-r.top)*480/r.height;if(y>=135&&y<=212)select(Math.floor((x-12)/76));else if(y>=229&&y<=320)press(x<80?2:x>248?4:3)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>cv.addEventListener(ev,release));
+ $('start').addEventListener('click',()=>state==='pause'?pause():start());$('pause').addEventListener('click',pause);function mute(){muted=!muted;$('mute').textContent='Suara: '+(muted?'mati':'aktif');$('mute').setAttribute('aria-pressed',String(muted))}$('mute').addEventListener('click',mute);
+ window.addEventListener('keydown',e=>{if(e.repeat||e.ctrlKey||e.altKey||e.metaKey)return;const k=e.key.toLowerCase();if(['1','2','3','4','5','p','escape','m','enter'].includes(k)){if(e.target.closest('button,a')&&k==='enter')return;e.preventDefault();if(/^[1-5]$/.test(k))press(+k);else if(k==='p'||k==='escape')pause();else if(k==='m')mute();else if(state==='title'||state==='over')start();else if(state==='pause')pause()}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='play')setState('pause')});window.addEventListener('blur',()=>{if(state==='play')setState('pause')});window.addEventListener('resize',fit);new ResizeObserver(fit).observe($('view'));
+ window.__ngc={get state(){return state},get score(){return score},get lives(){return lives},get time(){return ticks/60},get orders(){return orders.map(o=>({...o}))},get wok(){return wok?{...wok}:null},get holding(){return holding},get served(){return served},get muted(){return muted},press,start,pause,mute,select,fit,hi};
+ let last=0,acc=0;function frame(now){if(!last)last=now;acc+=Math.min(100,Math.max(0,now-last));last=now;while(acc>=1000/60){update();acc-=1000/60}draw();requestAnimationFrame(frame)}fit();hud();setState('title');requestAnimationFrame(frame);
 })();
+

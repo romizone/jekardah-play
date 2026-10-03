@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#251f35">
+<title>Gobak Sodor — Kampung Wijilan</title>
+<link rel="preload" as="image" href="aset/hero-judul.jpg">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#211e2c;color:#fff5da;font-family:system-ui,sans-serif}button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;color:#fff5da;background:#383347;border:1px solid #8f8194;border-radius:12px;cursor:pointer;min-height:44px;padding:8px 15px;font-weight:750}button:focus-visible,a:focus-visible{outline:3px solid #ffe69a;outline-offset:3px}button:hover{background:#51445b}#app{height:100dvh;height:100vh;display:flex;flex-direction:column;max-width:1100px;margin:auto;padding:10px 12px;gap:8px}header{display:flex;align-items:center;gap:8px;flex-shrink:0}header a{color:#ffe5a0;text-decoration:none;font-weight:750;margin-right:auto;font-size:14px}header button{font-size:13px;padding:7px 12px}#view{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}#screen{position:relative;overflow:hidden;border-radius:18px;box-shadow:0 12px 42px #0007;--u:1px;background:#8a5960}canvas{display:block;width:100%;height:100%;touch-action:none}#hud{position:absolute;top:calc(14 * var(--u));left:calc(16 * var(--u));right:calc(16 * var(--u));display:flex;justify-content:space-between;gap:6px;pointer-events:none}#hud div{background:#211e2ce8;border:1px solid #dfbf8270;padding:calc(7 * var(--u)) calc(13 * var(--u));border-radius:10px;min-width:0;font-size:clamp(10px,calc(12 * var(--u)),15px);color:#e8d8bd;letter-spacing:1px}#hud strong{display:block;font-size:clamp(17px,calc(22 * var(--u)),27px);color:#fff7dc;letter-spacing:0}#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:calc(23 * var(--u));background:#211a2ab8;backdrop-filter:blur(3px)}#overlay[hidden]{display:none}.card{width:100%;max-width:440px;text-align:center;background:#272334f5;border:1px solid #c79865;border-radius:22px;padding:clamp(15px,calc(25 * var(--u)),28px);box-shadow:0 15px 40px #0004}.eyebrow{color:#ffcb8e;letter-spacing:3px;text-transform:uppercase;font-size:12px;font-weight:800}h1{margin:8px 0;font-size:clamp(30px,calc(45 * var(--u)),48px);line-height:1.05;color:#ffe8ab}h2{margin:8px 0;font-size:28px}.subtitle{margin:0 0 16px;color:#ffcfb1;font-size:17px}.card p{line-height:1.5;font-size:clamp(12px,calc(15 * var(--u)),16px);margin:10px 0}.keys{background:#161520;padding:10px;border-radius:10px;color:#e1d8ed}.primary{background:#f4c16e;color:#302332;border:0;width:100%;margin-top:12px}.primary:hover{background:#ffe0a2}.record{color:#ffe4a2;font-weight:750}#controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;min-height:104px;padding:0 12px}#pad{width:98px;height:98px;position:relative;border:1px solid #a78a6c;border-radius:50%;background:#383044;touch-action:none;user-select:none;flex-shrink:0}#pad:before{content:'↑';position:absolute;top:4px;left:42px;color:#d2c2a6}#pad:after{content:'↓';position:absolute;bottom:4px;left:42px;color:#d2c2a6}#stick{position:absolute;width:42px;height:42px;border-radius:50%;top:27px;left:27px;background:#f4c16e;box-shadow:0 3px 10px #0005;pointer-events:none}.sides{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:8px;color:#d2c2a6;pointer-events:none}.hint{font-size:12px;line-height:1.6;color:#dbd0c2;text-align:right}.hint strong{color:#ffe4a2}#banner{position:absolute;top:16%;width:100%;text-align:center;pointer-events:none;color:#fff0b8;font-weight:850;font-size:clamp(15px,calc(23 * var(--u)),26px);text-shadow:0 2px 5px #000;background:#272334bb;padding:7px}#banner[hidden]{display:none}@media(min-width:760px){#controls{min-height:104px;justify-content:center;gap:40px}}@media(max-height:620px){#controls{min-height:70px}#pad{transform:scale(.7);margin:-14px}.card{padding:12px}.card p{margin:5px 0}.subtitle{margin-bottom:6px}#app{gap:4px;padding-top:5px;padding-bottom:5px}}
+</style>
+<style>.card{max-height:100%;overflow:auto;overscroll-behavior:contain}#app{height:100dvh}</style>
+<style>
+#overlay{isolation:isolate;background:linear-gradient(#211a2acc,#14121ee6)}
+.cinematic{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;pointer-events:none}
+#overlay::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(rgba(10,9,18,.64),rgba(10,9,18,.86));pointer-events:none}
+#overlay[data-scene="pause"] .cinematic{display:none}
+.card{background:#272334f5}
+</style>
+</head>
+<body>
+<main id="app">
+<header><a href="/games/" aria-label="Kembali ke daftar game">← Kembali</a><button id="sound" aria-pressed="false">Suara: Nyala</button><button id="pause">Jeda</button></header>
+<section id="view" aria-label="Lapangan Gobak Sodor"><div id="screen">
+<canvas id="game" width="540" height="660" aria-label="Pelari berbaju biru menghindari penjaga berbaju merah" role="img"></canvas>
+<div id="hud"><div>SKOR<strong id="score">0</strong></div><div>GELOMBANG<strong id="wave">1</strong></div><div>NYAWA<strong id="lives">♥ ♥ ♥</strong></div></div>
+<div id="banner" hidden></div><div id="overlay"><div class="card" id="card"></div></div>
+</div></section>
+<section id="controls" aria-label="Kontrol sentuh"><div id="pad" role="group" aria-label="Joystick: geser untuk bergerak"><div class="sides"><span>←</span><span>→</span></div><div id="stick"></div></div><div class="hint"><strong id="objective">Ke garis atas, lalu pulang!</strong><br>Geser joystick untuk bergerak<br>↑ ↓ ← → / WASD · P jeda · M suara</div></section>
+</main>
+<script src="engine.js"></script>
+</body>
+</html>
