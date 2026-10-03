@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Temple Runout — Jekardah Play</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#1a1610;overscroll-behavior:none;touch-action:manipulation}
+#stage{position:relative;max-width:480px;margin:0 auto;height:100dvh;max-height:100dvh;display:flex;align-items:center;justify-content:center}
+canvas{width:100%;height:auto;image-rendering:pixelated;border:2px solid #54462e;box-shadow:0 0 40px rgba(200,160,60,.12)}
+#ui{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#efe9dc;font-family:system-ui,sans-serif;pointer-events:none}
+#ui.hidden{display:none}
+#ui h1{font-size:26px;color:#ffd429;margin:0 0 8px;letter-spacing:2px}
+#ui p{font-size:13px;color:#c8b890;max-width:300px;margin:0 0 16px;line-height:1.6}
+#ui .hint{font-size:11px;color:#8a7a5a}
+#btnStart{pointer-events:auto;font:800 15px system-ui;letter-spacing:1px;background:#ffd429;color:#1a1408;border:3px solid #1a1408;box-shadow:3px 3px 0 #e5383b;padding:10px 26px;cursor:pointer}
+#hud{position:absolute;top:6px;left:0;right:0;display:flex;justify-content:space-between;padding:0 10px;color:#ffd429;font:700 12px system-ui;text-shadow:1px 1px 0 #000;pointer-events:none}
+#pads{position:absolute;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(3,1fr);pointer-events:auto}
+#pads button{padding:22px 0;border:0;background:rgba(255,212,41,.10);color:#ffd429;font:800 13px system-ui;letter-spacing:2px;border-top:2px solid rgba(255,212,41,.25);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#pads button:active{background:rgba(255,212,41,.28)}
+@media(min-height:640px){#pads button{padding:30px 0}}
+</style>
+</head>
+<body>
+<div id="stage">
+<canvas id="cv" width="320" height="480"></canvas>
+<div id="hud"><span id="ar">🏺 0/3</span><span id="tm">⏱ 0</span></div>
+<div id="ui">
+  <h1>TEMPLE RUNOUT</h1>
+  <p id="msg">Jelajahi labirin candi Nusantara.<br>Temukan 3 artefak 🏺<br>Hindari penjaga batu yang berpatroli!</p>
+  <button id="btnStart">▶ MULAI</button>
+  <p class="hint">Sentuh: tombol arah &nbsp;·&nbsp; Keyboard: WASD / panah</p>
+</div>
+<div id="pads">
+  <button id="bU">▲</button><button id="bL">◀</button><button id="bR">▶</button><button id="bD">▼</button>
+</div>
+</div>
+<script>
+/* JEK — kerangka game mini Jekardah Play (murni, tanpa dependency)
+   Kontrak:
+     JEK.boot(slug, function(g){ g.run(Game); })
+     function Game(ctx, S){ return { update(dt), draw(ctx) } }
+     S: beep(f,dur,type), onKey(k,fn), hi(), saveHi(v), over(title,sub,extra)
+*/
+window.JEK = (function(){
+  function hiKey(slug){ return "jek_hi_" + slug; }
+
+  function loop(update, draw){
+    let last = 0;
+    function frame(now){
+      const dtms = Math.min(50, now - last); last = now;
+      const dt = Math.max(1, Math.round(dtms / (1000/60))); // tick @60fps
+      try{ update(dt); draw(); }catch(e){}
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function beep(freq, dur, type, vol){
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+      if(!beep.ctx) beep.ctx = new AC();
+      if(beep.ctx.state === "suspended") beep.ctx.resume();
+      const o = beep.ctx.createOscillator(), gn = beep.ctx.createGain();
+      o.type = type || "square"; o.frequency.value = freq;
+      gn.gain.value = (vol == null ? 0.06 : vol);
+      gn.gain.exponentialRampToValueAtTime(0.0001, beep.ctx.currentTime + dur);
+      o.connect(gn); gn.connect(beep.ctx.destination);
+      o.start(); o.stop(beep.ctx.currentTime + dur + 0.02);
+    }catch(e){}
+  }
+
+  function boot(slug, cb){
+    document.addEventListener("DOMContentLoaded", function(){
+      const cv  = document.getElementById("cv");
+      const ui  = document.getElementById("ui");
+      const btn = document.getElementById("btnStart");
+      const h1  = ui ? ui.querySelector("h1") : null;
+      const msg = document.getElementById("msg");
+
+      btn.addEventListener("click", function(){
+        if(ui) ui.classList.add("hidden");
+        const ctx = cv.getContext("2d");
+        const keys = {};
+        const S = {
+          cv, W: cv.width, H: cv.height, beep: beep,
+          count: function(k){ (this._c = this._c || {}); this._c[k] = (this._c[k]||0)+1; return this._c[k]; },
+          onKey: function(key, fn){ keys[String(key).toLowerCase()] = fn; },
+          hi: function(){ return +(localStorage.getItem(hiKey(slug)) || 0); },
+          saveHi: function(v){ if(v > this.hi()) localStorage.setItem(hiKey(slug), v); },
+          over: function(title, sub, extra){
+            if(!ui) return;
+            ui.classList.remove("hidden");
+            if(h1) h1.textContent = (title && !/^Skor|^Rp/.test(title)) ? title : "GAME OVER";
+            const scoreLine = (title && /^Skor|^Rp/.test(title)) ? title + "<br>" : "";
+            if(msg) msg.innerHTML = scoreLine + (sub || "") + (extra ? "<br>" + extra : "") +
+              "<br><br>Rekor: " + ( +(localStorage.getItem(hiKey(slug)) || 0) );
+            btn.textContent = "↻ MAIN LAGI";
+          }
+        };
+        window.addEventListener("keydown", function(e){
+          const k = e.key.toLowerCase();
+          if(keys[k]){ e.preventDefault(); keys[k](); }
+        });
+        cb({ run: function(G){
+          const inst = G(ctx, S);
+          if(inst && inst.update && inst.draw) loop(inst.update, function(){ inst.draw(ctx); });
+        }});
+      });
+    });
+  }
+
+  return { boot, beep };
+})();
+
+</script>
+<script>
+let g;
+JEK.boot("temple-runout",(h)=>{g=h;g.run(Game)});
+function Game(ctx,S){
+ const W=320,H=480,TS=32,COLS=10,ROWS=15;
+ let t=0,state="play",time=0,scr=0,art=0;
+ // maze: 1=dinding 0=jalan (dibangkitkan deterministik per mainan)
+ const map=[];const seed=Math.random()*99999|0;
+ let rnd=(function(){let s=seed;return()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff}})();
+ for(let r=0;r<ROWS;r++){map[r]=[];for(let c=0;c<COLS;c++){
+   // border dinding, dalam: pola candi
+   if(r===0||c===0||r===ROWS-1||c===COLS-1)map[r][c]=1;
+   else map[r][c]=(r%2===0||c%2===0)&&rnd()<0.65?1:0;
+ }}
+ // pastikan start & area artefak terbuka
+ map[1][1]=0;map[ROWS-2][COLS-2]=0;map[1][COLS-2]=0;map[ROWS-2][1]=0;
+ // artefak di 3 pojok jauh
+ const arts=[{r:1,c:COLS-2},{r:ROWS-2,c:1},{r:ROWS-2,c:COLS-2}];
+ let guards=[
+  {r:5,c:3,dir:1,ph:0},{r:8,c:6,dir:-1,ph:2},{r:11,c:4,dir:1,ph:4}
+ ];
+ const P={r:1,c:1,px:1.5*TS,pr:1.5*TS,tx:1.5*TS,ty:1.5*TS,moving:false};
+ function tryMove(dr,dc){
+   const nr=P.r+dr,nc=P.c+dc;
+   if(nr<0||nc<0||nr>=ROWS||nc>=COLS||map[nr][nc]===1)return;
+   P.r=nr;P.c=nc;
+   S.beep(300,.04,"triangle",0.04);
+ }
+ // keyboard hold
+ const kh={};
+ const bind=(k,dr,dc)=>{S.onKey(k,()=>{kh[k]=true;});window.addEventListener("keyup",e=>{if(e.key.toLowerCase()===k)kh[k]=false});};
+ bind("arrowup",-1,0);bind("w",-1,0);bind("arrowdown",1,0);bind("s",1,0);
+ bind("arrowleft",0,-1);bind("a",0,-1);bind("arrowright",0,1);bind("d",0,1);
+ const pad=(id,dr,dc)=>{const el=document.getElementById(id);
+   el.addEventListener("pointerdown",e=>{e.preventDefault();tryMove(dr,dc)});
+ };
+ pad("bU",-1,0);pad("bD",1,0);pad("bL",0,-1);pad("bR",0,1);
+ function lose(){state="over";S.saveHi(scr);S.over("TERTANGKAP!","Penjaga batu menangkapmu di candi.","Artefak: "+art+"/3 · Waktu: "+Math.floor(time/60)+"s")}
+ function win(){state="win";S.saveHi(scr+3000);S.over("CANDI SELESAI! 🏺","Semua artefak ditemukan!","Skor: "+(scr+3000))}
+
+ const update=(dt)=>{
+  t+=dt;
+  if(state!=="play")return;
+  time+=dt;
+  // continuous move while key held
+  for(const k in kh)if(kh[k]){
+    if(k==="arrowup"||k==="w")tryMove(-1,0);
+    if(k==="arrowdown"||k==="s")tryMove(1,0);
+    if(k==="arrowleft"||k==="a")tryMove(0,-1);
+    if(k==="arrowright"||k==="d")tryMove(0,1);
+  }
+  // smooth pos
+  const tx=P.c*TS+TS/2,ty=P.r*TS+TS/2;
+  P.px+=(tx-P.px)*0.3;P.pr+=(ty-P.pr)*0.3;
+  // artefak pickup
+  for(let i=arts.length;i--;){
+    const a=arts[i];
+    if(a.r===P.r&&a.c===P.c){arts.splice(i,1);art++;scr+=500;S.beep(880,.12);S.beep(1170,.15,null,0.05);
+      document.getElementById("ar").textContent="🏺 "+art+"/3";
+      if(art===3){win();return}
+    }}
+  // guards patrol (horizontal, pantul di dinding)
+  guards.forEach(gd=>{
+    gd.ph+=0.05*dt;
+    let nr=gd.r,nc=gd.c+gd.dir;
+    if(nc<=0||nc>=COLS-1||map[nr][nc]===1){gd.dir*=-1;nc=gd.c+gd.dir}
+    if(map[nr][nc]===0){gd.c=nc}
+    // catch player
+    if(gd.r===P.r&&gd.c===P.c)lose();
+  });
+  document.getElementById("tm").textContent="⏱ "+Math.floor(time/60);
+ };
+ const draw=(x)=>{
+  // background
+  x.fillStyle="#1a1610";x.fillRect(0,0,W,H);
+  // tiles
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const px=c*TS,py=r*TS;
+    if(map[r][c]===1){
+      x.fillStyle="#54462e";x.fillRect(px,py,TS,TS);
+      x.fillStyle="#6a5a3e";x.fillRect(px+2,py+2,TS-4,TS-4);
+      x.fillStyle="#3a3020";x.fillRect(px+2,py+2,TS-4,3);
+      // ukiran candi
+      if((r+c)%3===0){x.fillStyle="#3a3020";x.fillRect(px+10,py+12,12,8);x.fillRect(px+14,py+8,4,4)}
+    }else{
+      x.fillStyle="#242018";x.fillRect(px,py,TS,TS);
+      x.fillStyle="#2a2620";x.fillRect(px,py,TS,2);
+    }
+  }
+  // artefak
+  arts.forEach(a=>{
+    const ax=a.c*TS+TS/2,ay=a.r*TS+TS/2;
+    x.fillStyle="#c8a020";x.fillRect(ax-6,ay-4,12,10);
+    x.fillStyle="#e8c040";x.fillRect(ax-4,ay-8,8,5);
+    x.fillStyle="#8a6a10";x.fillRect(ax-2,ay-11,4,4);
+  });
+  // guards
+  guards.forEach(gd=>{
+    const gx=gd.c*TS+TS/2,gy=gd.r*TS+TS/2+Math.sin(gd.ph)*2;
+    x.fillStyle="rgba(0,0,0,.4)";x.fillRect(gx-10,gy+10,20,4);
+    x.fillStyle="#6a6a7a";x.fillRect(gx-8,gy-8,16,18);
+    x.fillStyle="#4a4a5a";x.fillRect(gx-6,gy-14,12,8); // head
+    x.fillStyle="#ff3a3a";x.fillRect(gx-4,gy-12,3,3);x.fillRect(gx+2,gy-12,3,3); // glowing eyes
+  });
+  // player (penjelajah)
+  const px=P.px,py=P.pr;
+  x.fillStyle="rgba(0,0,0,.4)";x.fillRect(px-8,py+10,16,4);
+  x.fillStyle="#2a6a3a";x.fillRect(px-6,py-4,12,14); // shirt
+  x.fillStyle="#e8b070";x.fillRect(px-5,py-14,10,10); // head
+  x.fillStyle="#5a3a1a";x.fillRect(px-6,py-16,12,4);  // hair
+  x.fillStyle="#e8b070";x.fillRect(px+6,py-2,6,3);    // torch arm
+  x.fillStyle="#ff9a3a";x.fillRect(px+12,py-6+Math.sin(t*.1)*2,4,6); // torch
+  // torch glow
+  x.fillStyle="rgba(255,160,60,.15)";x.beginPath();x.arc(px+14,py-4,20,0,7);x.fill();
+  if(state==="play"&&t<180){x.fillStyle="rgba(255,212,41,.9)";x.font="bold 14px monospace";x.textAlign="center";
+    x.fillText("CARI 3 ARTEFAK!",160,200)}
+ };
+return {update, draw};
+}
+</script>
+</body>
+</html>

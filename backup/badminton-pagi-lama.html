@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Badminton Pagi — Jekardah Play</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#0e1a24;overscroll-behavior:none;touch-action:manipulation}
+#stage{position:relative;max-width:480px;margin:0 auto;height:100dvh;max-height:100dvh;display:flex;align-items:center;justify-content:center}
+canvas{width:100%;height:auto;image-rendering:pixelated;border:2px solid #2a4a6a;box-shadow:0 0 40px rgba(80,160,255,.12)}
+#ui{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#efe9dc;font-family:system-ui,sans-serif;pointer-events:none}
+#ui.hidden{display:none}
+#ui h1{font-size:26px;color:#ffd429;margin:0 0 8px;letter-spacing:2px}
+#ui p{font-size:13px;color:#a0c0d8;max-width:300px;margin:0 0 16px;line-height:1.6}
+#ui .hint{font-size:11px;color:#5a7a8a}
+#btnStart{pointer-events:auto;font:800 15px system-ui;letter-spacing:1px;background:#ffd429;color:#1a1408;border:3px solid #1a1408;box-shadow:3px 3px 0 #e5383b;padding:10px 26px;cursor:pointer}
+#hud{position:absolute;top:6px;left:0;right:0;display:flex;justify-content:space-between;padding:0 10px;color:#ffd429;font:700 12px system-ui;text-shadow:1px 1px 0 #000;pointer-events:none}
+#pads{position:absolute;bottom:0;left:0;right:0;display:flex;pointer-events:auto}
+#pads button{flex:1;padding:22px 0;border:0;background:rgba(255,212,41,.10);color:#ffd429;font:800 13px system-ui;letter-spacing:2px;border-top:2px solid rgba(255,212,41,.25);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#pads button:active{background:rgba(255,212,41,.28)}
+@media(min-height:640px){#pads button{padding:30px 0}}
+</style>
+</head>
+<body>
+<div id="stage">
+<canvas id="cv" width="320" height="480"></canvas>
+<div id="hud"><span id="scA">Kamu 0</span><span id="scB">AI 0</span></div>
+<div id="ui">
+  <h1>BADMINTON PAGI</h1>
+  <p id="msg">Rally badminton 2D di lapangan pagi.<br>Geser kiri/kanan, tekan SMASH<br>saat shuttlecock dekat!</p>
+  <button id="btnStart">▶ MULAI</button>
+  <p class="hint">Sentuh: tombol ◀ ▶ + SMASH &nbsp;·&nbsp; Keyboard: ← → , Z smash</p>
+</div>
+<div id="pads">
+  <button id="bL">◀</button>
+  <button id="bS">SMASH</button>
+  <button id="bR">▶</button>
+</div>
+</div>
+<script>
+/* JEK — kerangka game mini Jekardah Play (murni, tanpa dependency)
+   Kontrak:
+     JEK.boot(slug, function(g){ g.run(Game); })
+     function Game(ctx, S){ return { update(dt), draw(ctx) } }
+     S: beep(f,dur,type), onKey(k,fn), hi(), saveHi(v), over(title,sub,extra)
+*/
+window.JEK = (function(){
+  function hiKey(slug){ return "jek_hi_" + slug; }
+
+  function loop(update, draw){
+    let last = 0;
+    function frame(now){
+      const dtms = Math.min(50, now - last); last = now;
+      const dt = Math.max(1, Math.round(dtms / (1000/60))); // tick @60fps
+      try{ update(dt); draw(); }catch(e){}
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function beep(freq, dur, type, vol){
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+      if(!beep.ctx) beep.ctx = new AC();
+      if(beep.ctx.state === "suspended") beep.ctx.resume();
+      const o = beep.ctx.createOscillator(), gn = beep.ctx.createGain();
+      o.type = type || "square"; o.frequency.value = freq;
+      gn.gain.value = (vol == null ? 0.06 : vol);
+      gn.gain.exponentialRampToValueAtTime(0.0001, beep.ctx.currentTime + dur);
+      o.connect(gn); gn.connect(beep.ctx.destination);
+      o.start(); o.stop(beep.ctx.currentTime + dur + 0.02);
+    }catch(e){}
+  }
+
+  function boot(slug, cb){
+    document.addEventListener("DOMContentLoaded", function(){
+      const cv  = document.getElementById("cv");
+      const ui  = document.getElementById("ui");
+      const btn = document.getElementById("btnStart");
+      const h1  = ui ? ui.querySelector("h1") : null;
+      const msg = document.getElementById("msg");
+
+      btn.addEventListener("click", function(){
+        if(ui) ui.classList.add("hidden");
+        const ctx = cv.getContext("2d");
+        const keys = {};
+        const S = {
+          cv, W: cv.width, H: cv.height, beep: beep,
+          count: function(k){ (this._c = this._c || {}); this._c[k] = (this._c[k]||0)+1; return this._c[k]; },
+          onKey: function(key, fn){ keys[String(key).toLowerCase()] = fn; },
+          hi: function(){ return +(localStorage.getItem(hiKey(slug)) || 0); },
+          saveHi: function(v){ if(v > this.hi()) localStorage.setItem(hiKey(slug), v); },
+          over: function(title, sub, extra){
+            if(!ui) return;
+            ui.classList.remove("hidden");
+            if(h1) h1.textContent = (title && !/^Skor|^Rp/.test(title)) ? title : "GAME OVER";
+            const scoreLine = (title && /^Skor|^Rp/.test(title)) ? title + "<br>" : "";
+            if(msg) msg.innerHTML = scoreLine + (sub || "") + (extra ? "<br>" + extra : "") +
+              "<br><br>Rekor: " + ( +(localStorage.getItem(hiKey(slug)) || 0) );
+            btn.textContent = "↻ MAIN LAGI";
+          }
+        };
+        window.addEventListener("keydown", function(e){
+          const k = e.key.toLowerCase();
+          if(keys[k]){ e.preventDefault(); keys[k](); }
+        });
+        cb({ run: function(G){
+          const inst = G(ctx, S);
+          if(inst && inst.update && inst.draw) loop(inst.update, function(){ inst.draw(ctx); });
+        }});
+      });
+    });
+  }
+
+  return { boot, beep };
+})();
+
+</script>
+<script>
+let g;
+JEK.boot("badminton-pagi",(h)=>{g=h;g.run(Game)});
+function Game(ctx,S){
+ const W=320,H=480,GY=420,NET=240;
+ let t=0,state="play",scoreA=0,scoreB=0,serveA=true,rallyT=0;
+ const P={x:100,tx:100,dir:0},B={x:220,tx:220};
+ const SH={x:160,y:GY-100,vx:0,vy:0,active:false,from:0};
+ const keys={};
+ S.onKey("ArrowLeft",()=>{keys.l=true});S.onKey("ArrowRight",()=>{keys.r=true});
+ S.onKey("z",()=>smash());
+ window.addEventListener("keyup",e=>{const k=e.key.toLowerCase();if(k==="arrowleft")keys.l=false;if(k==="arrowright")keys.r=false});
+ const hold=(id,flag)=>{const el=document.getElementById(id);
+   el.addEventListener("pointerdown",e=>{e.preventDefault();keys[flag]=true});
+   el.addEventListener("pointerup",()=>keys[flag]=false);
+   el.addEventListener("pointerleave",()=>keys[flag]=false);
+ };
+ hold("bL","l");hold("bR","r");
+ document.getElementById("bS").addEventListener("pointerdown",e=>{e.preventDefault();smash()});
+
+ function smash(){
+   if(state!=="play")return;
+   if(Math.abs(SH.x-P.x)<36&&SH.y>GY-140&&SH.from===0){ // player hit
+     const aim=(SH.x-160)/160; // arah
+     SH.vy=-(7+Math.random()*2);SH.vx=3.5+aim*2+Math.random();
+     if(keys.s||Math.abs(P.x-SH.x)<20){SH.vy-=3;SH.vx*=1.5;S.beep(1000,.08)} // smash kuat dekat
+     else S.beep(600,.06);
+     SH.from=1;rallyT++;
+   }
+ }
+ function serve(from){
+   SH.active=true;SH.from=from;rallyT=0;
+   if(from===0){SH.x=P.x;SH.y=GY-120;SH.vx=2+Math.random();SH.vy=-6}
+   else{SH.x=B.x;SH.y=GY-120;SH.vx=-(2+Math.random());SH.vy=-6}
+   S.beep(500,.05);
+ }
+ function point(who){
+   if(who==="A")scoreA++;else scoreB++;
+   S.beep(who==="A"?880:300,.15);
+   document.getElementById("scA").textContent="Kamu "+scoreA;
+   document.getElementById("scB").textContent="AI "+scoreB;
+   SH.active=false;
+   if(scoreA>=11||scoreB>=11){
+     state=(scoreA>=11)?"winA":"winB";
+     S.saveHi(scoreA*100);
+     S.over(scoreA>=11?"MENANG! 🏸":"KALAH...",
+       (scoreA>=11?"Kamu mengalahkan AI!":"AI unggul kali ini."),
+       "Skor akhir: "+scoreA+" - "+scoreB);
+     return;
+   }
+   serve(who==="A"?0:1);
+ }
+ const update=(dt)=>{
+  t+=dt;
+  if(state!=="play")return;
+  // movement
+  if(keys.l)P.tx-=5*dt;if(keys.r)P.tx+=5*dt;
+  P.tx=Math.max(20,Math.min(NET-20,P.tx));
+  P.x+=(P.tx-P.x)*0.3;
+  // AI
+  B.tx=SH.from===1?SH.x+SH.vx*8:Math.max(NET+20,Math.min(W-20,SH.x+40));
+  B.x+=(B.tx-B.x)*0.08;
+  // shuttle physics
+  if(SH.active){
+    SH.vy+=0.25*dt; // gravity
+    SH.vx*=0.995;SH.vy*=0.998; // drag shuttlecock
+    SH.x+=SH.vx*dt;SH.y+=SH.vy*dt;
+    // net collision
+    if(SH.y>GY-80&&SH.y<GY-60&&Math.abs(SH.x-NET)<6&&SH.from===0){SH.vy=-Math.abs(SH.vy)*0.5;SH.x=NET-6}
+    if(SH.y>GY-80&&SH.y<GY-60&&Math.abs(SH.x-NET)<6&&SH.from===1){SH.vy=-Math.abs(SH.vy)*0.5;SH.x=NET+6}
+    // AI hit
+    if(SH.from===1&&Math.abs(SH.x-B.x)<34&&SH.y>GY-140){
+      SH.vy=-(5+Math.random()*2);SH.vx=-(2.5+Math.random()*2.5);SH.from=0;S.beep(550,.05);
+    }
+    // landing
+    if(SH.y>GY){
+      if(SH.x<NET)point("B");else point("A");
+    }
+  }
+ };
+ const draw=(x)=>{
+  // pagi sky
+  const sky=x.createLinearGradient(0,0,0,GY);
+  sky.addColorStop(0,"#1a3a5a");sky.addColorStop(1,"#7aa8c8");
+  x.fillStyle=sky;x.fillRect(0,0,W,GY);
+  // matahari pagi
+  x.fillStyle="#ffd429";x.globalAlpha=0.7;x.beginPath();x.arc(70,80,30,0,7);x.fill();x.globalAlpha=1;
+  // awan
+  x.fillStyle="rgba(255,255,255,.5)";
+  for(let i=0;i<4;i++){const cx=(i*100+t*0.2)%(W+60)-30;x.fillRect(cx,50+i*30,40,8);x.fillRect(cx+8,44+i*30,24,8)}
+  // court ground
+  x.fillStyle="#2a6a4a";x.fillRect(0,GY,W,H-GY);
+  x.fillStyle="#2a5a40";x.fillRect(0,GY,W,4);
+  // garis lapangan
+  x.strokeStyle="#e8e8d8";x.lineWidth=2;
+  x.strokeRect(20,GY-2,W-40,50);
+  x.beginPath();x.moveTo(NET,GY-2);x.lineTo(NET,GY+48);x.stroke();
+  // net
+  x.fillStyle="#1a1a2a";x.fillRect(NET-2,GY-80,4,80);
+  x.fillStyle="rgba(230,230,220,.6)";
+  for(let i=0;i<8;i++)x.fillRect(NET-1,GY-78+i*10,2,6);
+  // players
+  const draw=(px,flip,c)=>{
+    x.fillStyle="rgba(0,0,0,.3)";x.fillRect(px-10,GY-2,20,4);
+    x.fillStyle=c;x.fillRect(px-6,GY-34,12,22);
+    x.fillStyle="#e8b070";x.fillRect(px-5,GY-46,10,12);
+    x.fillStyle="#1a1a1a";x.fillRect(px-3,GY-42,2,2);x.fillRect(px+1,GY-42,2,2);
+    // racket
+    x.strokeStyle="#c8c0b0";x.lineWidth=2;
+    x.beginPath();x.arc(px+(flip?14:-14),GY-40,8,0,7);x.stroke();
+    x.beginPath();x.moveTo(px+(flip?6:-6),GY-36);x.lineTo(px+(flip?2:-2),GY-30);x.stroke();
+  };
+  draw(P.x,false,"#e53a3a");
+  draw(B.x,true,"#3a6ae5");
+  // shuttlecock
+  if(SH.active){
+    x.fillStyle="#fff";
+    x.beginPath();x.arc(SH.x,SH.y,4,0,7);x.fill();
+    x.fillStyle="#c8c8c8";
+    x.beginPath();x.moveTo(SH.x-4,SH.y);x.lineTo(SH.x+4,SH.y);x.lineTo(SH.x,SH.y-8);x.fill();
+  }
+  // score & rally
+  x.fillStyle="#ffd429";x.font="bold 10px monospace";x.textAlign="center";
+  x.fillText("RALLY "+rallyT,160,20);
+ };
+return {update, draw};
+}
+</script>
+</body>
+</html>

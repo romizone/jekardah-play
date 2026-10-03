@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Wayang Rush — Jekardah Play</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#0e0a18;overscroll-behavior:none;touch-action:manipulation}
+#stage{position:relative;max-width:480px;margin:0 auto;height:100dvh;max-height:100dvh;display:flex;align-items:center;justify-content:center}
+canvas{width:100%;height:auto;image-rendering:pixelated;border:2px solid #3a2f55;box-shadow:0 0 40px rgba(120,80,255,.15)}
+#ui{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#efe9dc;font-family:system-ui,sans-serif;pointer-events:none}
+#ui.hidden{display:none}
+#ui h1{font-size:26px;color:#ffd429;margin:0 0 8px;letter-spacing:2px}
+#ui p{font-size:13px;color:#b8aed0;max-width:300px;margin:0 0 16px;line-height:1.6}
+#ui .hint{font-size:11px;color:#7a6f92}
+#btnStart{pointer-events:auto;font:800 15px system-ui;letter-spacing:1px;background:#ffd429;color:#1a1408;border:3px solid #1a1408;box-shadow:3px 3px 0 #e5383b;padding:10px 26px;cursor:pointer}
+#hud{position:absolute;top:6px;left:0;right:0;display:flex;justify-content:space-between;padding:0 10px;color:#ffd429;font:700 12px system-ui;text-shadow:1px 1px 0 #000;pointer-events:none}
+#pads{position:absolute;bottom:0;left:0;right:0;display:flex;pointer-events:auto}
+#pads button{flex:1;padding:22px 0;border:0;background:rgba(255,212,41,.10);color:#ffd429;font:800 13px system-ui;letter-spacing:2px;border-top:2px solid rgba(255,212,41,.25);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#pads button:active{background:rgba(255,212,41,.28)}
+@media(min-height:640px){#pads button{padding:30px 0}}
+</style>
+</head>
+<body>
+<div id="stage">
+<canvas id="cv" width="320" height="480"></canvas>
+<div id="hud"><span id="hp">❤❤❤</span><span id="sc">SKOR 0</span></div>
+<div id="ui">
+  <h1>WAYANG RUSH</h1>
+  <p id="msg">Duel pedang wayang di malam hari.<br>Tekan PARRY tepat saat serangan datang.<br>Parry sempurna = 2 serangan balasan!</p>
+  <button id="btnStart">▶ MULAI</button>
+  <p class="hint">Sentuh: PARRY / SERANG &nbsp;·&nbsp; Keyboard: ← A/D → , Z parry, X serang</p>
+</div>
+<div id="pads">
+  <button id="bParry">PARRY</button>
+  <button id="bAtk">SERANG</button>
+</div>
+</div>
+<script>
+/* JEK — kerangka game mini Jekardah Play (murni, tanpa dependency)
+   Kontrak:
+     JEK.boot(slug, function(g){ g.run(Game); })
+     function Game(ctx, S){ return { update(dt), draw(ctx) } }
+     S: beep(f,dur,type), onKey(k,fn), hi(), saveHi(v), over(title,sub,extra)
+*/
+window.JEK = (function(){
+  function hiKey(slug){ return "jek_hi_" + slug; }
+
+  function loop(update, draw){
+    let last = 0;
+    function frame(now){
+      const dtms = Math.min(50, now - last); last = now;
+      const dt = Math.max(1, Math.round(dtms / (1000/60))); // tick @60fps
+      try{ update(dt); draw(); }catch(e){}
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function beep(freq, dur, type, vol){
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+      if(!beep.ctx) beep.ctx = new AC();
+      if(beep.ctx.state === "suspended") beep.ctx.resume();
+      const o = beep.ctx.createOscillator(), gn = beep.ctx.createGain();
+      o.type = type || "square"; o.frequency.value = freq;
+      gn.gain.value = (vol == null ? 0.06 : vol);
+      gn.gain.exponentialRampToValueAtTime(0.0001, beep.ctx.currentTime + dur);
+      o.connect(gn); gn.connect(beep.ctx.destination);
+      o.start(); o.stop(beep.ctx.currentTime + dur + 0.02);
+    }catch(e){}
+  }
+
+  function boot(slug, cb){
+    document.addEventListener("DOMContentLoaded", function(){
+      const cv  = document.getElementById("cv");
+      const ui  = document.getElementById("ui");
+      const btn = document.getElementById("btnStart");
+      const h1  = ui ? ui.querySelector("h1") : null;
+      const msg = document.getElementById("msg");
+
+      btn.addEventListener("click", function(){
+        if(ui) ui.classList.add("hidden");
+        const ctx = cv.getContext("2d");
+        const keys = {};
+        const S = {
+          cv, W: cv.width, H: cv.height, beep: beep,
+          count: function(k){ (this._c = this._c || {}); this._c[k] = (this._c[k]||0)+1; return this._c[k]; },
+          onKey: function(key, fn){ keys[String(key).toLowerCase()] = fn; },
+          hi: function(){ return +(localStorage.getItem(hiKey(slug)) || 0); },
+          saveHi: function(v){ if(v > this.hi()) localStorage.setItem(hiKey(slug), v); },
+          over: function(title, sub, extra){
+            if(!ui) return;
+            ui.classList.remove("hidden");
+            if(h1) h1.textContent = (title && !/^Skor|^Rp/.test(title)) ? title : "GAME OVER";
+            const scoreLine = (title && /^Skor|^Rp/.test(title)) ? title + "<br>" : "";
+            if(msg) msg.innerHTML = scoreLine + (sub || "") + (extra ? "<br>" + extra : "") +
+              "<br><br>Rekor: " + ( +(localStorage.getItem(hiKey(slug)) || 0) );
+            btn.textContent = "↻ MAIN LAGI";
+          }
+        };
+        window.addEventListener("keydown", function(e){
+          const k = e.key.toLowerCase();
+          if(keys[k]){ e.preventDefault(); keys[k](); }
+        });
+        cb({ run: function(G){
+          const inst = G(ctx, S);
+          if(inst && inst.update && inst.draw) loop(inst.update, function(){ inst.draw(ctx); });
+        }});
+      });
+    });
+  }
+
+  return { boot, beep };
+})();
+
+</script>
+<script>
+let g;
+JEK.boot("wayang-rush",(h)=>{g=h;g.run(Game)});
+function Game(c,S){
+ const W=320,H=480;let t=0,state="play",scr=0,shake=0;
+ let phase=1,phaseTimer=0;
+ const P={x:100,tx:100,hp:6,dir:1,act:"idle",actT:0,cd:0};
+ const B={x:220,tx:220,hp:30,dir:-1,act:"idle",actT:0,tel:120,telegraphed:false};
+ const slash=[],fx=[];
+ const BOSS=["Garung Batik","Dewi Kirana","Rexa Kelam"];
+
+ S.onKey("ArrowLeft",()=>P.tx=Math.max(40,P.tx-60));
+ S.onKey("ArrowRight",()=>P.tx=Math.min(280,P.tx+60));
+ S.onKey("z",()=>parry());
+ S.onKey("x",()=>attack());
+ document.getElementById("bParry").addEventListener("pointerdown",e=>{e.preventDefault();parry()});
+ document.getElementById("bAtk").addEventListener("pointerdown",e=>{e.preventDefault();attack()});
+
+ function hpMax(){return 30+phase*14}
+ function parry(){ if(P.cd>0||state!=="play")return; P.act="parry";P.actT=18;P.cd=22;
+   // window: boss telegraph active & close
+   if(B.act==="wind"&&B.actT<44&&Math.abs(P.x-B.x)<90){
+     if(B.actT<26){ // perfect
+       score(200);S.beep(660,.06);S.beep(990,.08,90);
+       B.hp-=2;B.act="stun";B.actT=90;P.act="counter";P.actT=40;
+       burst(B.x,140,"#ffd429",10);
+     }else{ // normal parry
+       score(60);S.beep(440,.06);
+       B.act="stun";B.actT=50;P.act="counter";P.actT=26;
+     }
+   }
+ }
+ function attack(){ if(P.cd>0||state!=="play")return; P.act="atk";P.actT=20;P.cd=26;
+   slash.push({x:P.x,y:140,d:P.dir,life:8,c:"#fff"});
+   S.beep(300,.05,"sawtooth");
+   if(Math.abs(P.x-B.x)<80&&B.act!=="wind"){hitBoss(3)}
+ }
+ function hitBoss(d){B.hp-=d;burst(B.x,140,"#e5383b",5);score(30);
+   if(B.hp<=0){phase++;score(500);
+     if(phase>3){win()}else{B.hp=hpMax();B.x=220;P.tx=100;phaseTimer=90;B.act="idle";P.act="idle";
+       flash(`FASE ${phase}!`)}
+   }}
+ function playerHit(d){P.hp-=d;shake=8;S.beep(120,.12,"square");burst(P.x,150,"#e5383b",6);
+   if(P.hp<=0)lose()}
+ function score(n){scr+=n}
+ function burst(x,y,c,n){for(let i=0;i<n;i++)fx.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4,life:20,c})}
+ function flash(txt){fx.push({x:160,y:200,vx:0,vy:0,life:60,c:"#ffd429",big:txt})}
+ function lose(){state="over";S.saveHi(scr);S.over(`Skor: ${scr}`,"Terpukul oleh "+BOSS[Math.min(phase,3)-1]+"...")}
+ function win(){state="win";S.saveHi(scr+2000);S.over("MENANG! 🎉","Semua fase bos tumbuh!",`Skor akhir: ${scr+2000}`)}
+
+ const update=(dt)=>{
+  t+=dt;
+  if(shake>0)shake--;
+  P.cd=Math.max(0,P.cd-dt);P.actT-=dt;
+  if(P.actT<=0&&P.act!=="idle")P.act="idle";
+  P.x+=(P.tx-P.x)*.15;
+  if(P.dir!=Math.sign(B.x-P.x)||B.x!==P.x)P.dir=B.x>P.x?1:-1;
+
+  // Boss AI
+  if(phaseTimer>0){phaseTimer-=dt}
+  else if(B.act==="stun"){B.actT-=dt;if(B.actT<=0)B.act="idle"}
+  else if(B.act==="wind"){B.actT-=dt;if(B.actT<=0){ // strike
+     slash.push({x:B.x,y:140,d:B.dir,life:8,c:"#e5383b"});
+     if(Math.abs(P.x-B.x)<80){ if(P.act==="parry"){/*already handled*/} else playerHit(1)}
+     B.act="idle";B.tel=120-phase*25;
+  }}
+  else if(B.act==="idle"){
+    B.tel-=dt;
+    if(B.tel<=0){B.act="wind";B.actT=52-phase*6}
+    // reposition
+    if(Math.random()<.02)B.tx=60+Math.random()*200;
+    B.x+=(B.tx-B.x)*.06;
+    if(B.x>P.x)B.x=Math.max(P.x+55,B.x-0.4);else B.x=Math.min(P.x-55,B.x+0.4);
+    if(Math.abs(B.x-P.x)>100&&Math.random()<.03){B.act="dash";B.actT=20}
+  }
+  else if(B.act==="dash"){B.actT-=dt;
+    B.x+=(P.x>B.x?1:-1)*5;
+    if(B.actT<=0){B.tel=40-phase*8;B.act="idle"}
+  }
+
+  slash.forEach(s=>s.life--);for(let i=slash.length;i--;)if(slash[i].life<=0)slash.splice(i,1);
+  fx.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.life--});
+  for(let i=fx.length;i--;)if(fx[i].life<=0)fx.splice(i,1);
+
+  document.getElementById("hp").textContent="❤".repeat(Math.max(0,P.hp))||"—";
+  document.getElementById("sc").textContent="SKOR "+scr;
+ };
+ const draw=(x)=>{
+  const off=shake?Math.round((Math.random()-.5)*shake):0;
+  // night sky
+  x.fillStyle="#0e0a18";x.fillRect(0,0,W,H);
+  for(let i=0;i<40;i++){const sx=(i*97)%320,sy=(i*53)%230;
+    x.fillStyle=i%3?"#2a2140":"#4a3a70";x.fillRect(sx,sy,2,2)}
+  x.fillStyle="#ffd429";x.beginPath();x.arc(250,60,20,0,7);x.fill();
+  x.fillStyle="#0e0a18";x.beginPath();x.arc(258,55,17,0,7);x.fill();
+  // ground
+  x.fillStyle="#1c1430";x.fillRect(0,300,W,180);
+  x.strokeStyle="#3a2a55";x.beginPath();x.moveTo(0,301);x.lineTo(320,301);x.stroke();
+  for(let i=0;i<8;i++){x.fillStyle="#241a3a";x.fillRect(i*42+((t*0.3)%42|0)-42,340,20,3)}
+  const gy=(a)=>340+a; // ground y for actors
+  const draw=(ax,flick)=>{
+    // shadow
+    x.fillStyle="rgba(0,0,0,.4)";x.fillRect(ax-14,336,28,5);
+    // body (wayang: flat jointed silhouette)
+    x.fillStyle=flick;
+    x.fillRect(ax-7,gy(-44),14,26);        // torso
+    x.fillRect(ax-3,gy(-18),6,16);          // legs
+    x.fillRect(ax-9,gy(-18),4,14);x.fillRect(ax+5,gy(-18),4,14);
+    // head with gunungan headdress
+    x.fillRect(ax-5,gy(-56),10,12);
+    x.fillRect(ax-2,gy(-64),4,8);
+    x.fillRect(ax-6,gy(-58),12,3);
+  };
+  const px=P.x+off,bx=B.x+off;
+  draw(px,P.act==="parry"?"#ffd429":"#e8dcc0");
+  draw(bx,B.act==="wind"?(Math.sin(t*.4)>0?"#ff5060":"#e5383b"):"#8a5cc0");
+  // weapons
+  x.strokeStyle=P.act==="atk"?"#fff":"#c8b890";x.lineWidth=3;
+  x.beginPath();x.moveTo(px+(P.dir*8),gy(-38));x.lineTo(px+(P.dir*(P.act==="atk"?34:20)),gy(-48));x.stroke();
+  x.strokeStyle=B.act==="wind"?"#ff2060":"#6a4a9a";
+  x.beginPath();x.moveTo(bx-8,gy(-38));x.lineTo(bx-26,gy(-48));x.stroke();
+  // telegraph bar
+  if(B.act==="wind"){x.fillStyle="#e5383b";x.fillRect(bx-15,gy(-80),Math.max(0,B.actT),4);x.strokeStyle="#000";x.strokeRect(bx-15,gy(-80),52,4)}
+  // nameplate
+  x.fillStyle="#ffd429";x.font="bold 8px monospace";x.textAlign="center";
+  x.fillText(`FASE ${phase}/3 — ${BOSS[Math.min(phase,3)-1].toUpperCase()}`,160,20);
+  x.fillStyle="#2a2140";x.fillRect(60,26,200,5);
+  x.fillStyle="#e5383b";x.fillRect(60,26,200*Math.max(0,B.hp)/hpMax(),5);
+  // slashes
+  slash.forEach(s=>{x.strokeStyle=s.c;x.lineWidth=4;x.globalAlpha=s.life/8;
+    x.beginPath();x.moveTo(s.x,s.y-14);x.lineTo(s.x+s.d*36,s.y+10);x.stroke();x.globalAlpha=1});
+  fx.forEach(f=>{if(f.big){x.font="bold 22px monospace";x.fillStyle=f.c;x.globalAlpha=Math.min(1,f.life/30);x.fillText(f.big,f.x,f.y);x.globalAlpha=1}
+    else{x.fillStyle=f.c;x.fillRect(f.x,f.y,3,3)}});
+ };
+return {update, draw};
+}
+</script>
+</body>
+</html>

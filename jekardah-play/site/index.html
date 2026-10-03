@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Jekardah Play — enam game HTML5 orisinal bertema Nusantara. Main langsung di browser, gratis, tanpa install, siap offline.">
+<meta name="theme-color" content="#14100f">
+<title>Jekardah Play — Sedikit jeda. Banyak main.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e8ff8a'/%3E%3Ctext x='16' y='24' font-family='monospace' font-size='20' font-weight='bold' text-anchor='middle' fill='%2314100f'%3EJ%3C/text%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   JEKARDAH PLAY — portal konsol
+   Base gelap hangat + krem + limau + koral. Zero dependency.
+   ============================================================ */
+:root{
+  --bg:#14100f;
+  --bg2:#1b1513;
+  --panel:#211a17;
+  --panel2:#2a211d;
+  --line:#3a2f29;
+  --line2:#4d3f36;
+  --txt:#f4efe2;
+  --dim:#b9b0a0;
+  --faint:#948b7c;
+  --limau:#e8ff8a;
+  --limau-d:#c8e05e;
+  --koral:#ff7a5c;
+  --sage:#8b9481;
+  --ink:#14100f;
+
+  --f-sans:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,"Liberation Mono",monospace;
+
+  --r:14px;
+  --shadow:0 20px 50px -28px rgba(0,0,0,.95);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:104px;-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:var(--f-sans);
+  font-size:16px;line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 78% -8%, rgba(232,255,138,.055), transparent 62%),
+    radial-gradient(900px 520px at 4% 4%, rgba(255,122,92,.05), transparent 60%),
+    linear-gradient(rgba(244,239,226,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244,239,226,.022) 1px, transparent 1px);
+  background-size:auto,auto,44px 44px,44px 44px;
+  background-attachment:fixed,fixed,scroll,scroll;
+}
+.wrap{width:100%;max-width:1240px;margin:0 auto;padding:0 28px}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+img,svg{max-width:100%}
+::selection{background:var(--limau);color:var(--ink)}
+
+:focus-visible{outline:3px solid var(--limau);outline-offset:3px;border-radius:6px}
+.skip{
+  position:absolute;left:16px;top:-70px;z-index:200;
+  background:var(--limau);color:var(--ink);font-weight:800;
+  padding:12px 20px;border-radius:0 0 10px 10px;letter-spacing:.06em;
+  transition:top .2s;
+}
+.skip:focus{top:0}
+
+/* micro label */
+.micro{
+  font-family:var(--f-mono);font-size:11px;font-weight:700;
+  letter-spacing:.24em;text-transform:uppercase;color:var(--faint);
+}
+.micro-limau{color:var(--limau)}
+.micro-koral{color:var(--koral)}
+
+/* ---------- masthead ---------- */
+header{
+  position:sticky;top:0;z-index:60;
+  background:rgba(20,16,15,.82);
+  backdrop-filter:blur(14px) saturate(1.3);
+  -webkit-backdrop-filter:blur(14px) saturate(1.3);
+  border-bottom:1px solid var(--line);
+}
+.hbar{display:flex;align-items:center;gap:18px;padding:14px 0;min-height:74px}
+.brand{display:flex;align-items:center;gap:13px;flex:none}
+.brand-mark{
+  width:44px;height:44px;flex:none;border-radius:12px;
+  background:linear-gradient(150deg,var(--limau),var(--limau-d));
+  display:grid;place-items:center;
+  font-family:var(--f-mono);font-weight:800;font-size:22px;color:var(--ink);
+  box-shadow:0 0 0 1px rgba(232,255,138,.5), 0 8px 22px -10px rgba(232,255,138,.7);
+  position:relative;
+}
+.brand-mark::after{
+  content:"";position:absolute;inset:5px;border-radius:7px;
+  border:2px solid rgba(20,16,15,.16);
+}
+.brand-txt{display:flex;flex-direction:column;line-height:1.05}
+.brand-txt b{
+  font-size:17px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+}
+.brand-txt b em{font-style:normal;color:var(--limau)}
+.brand-txt small{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.19em;
+  text-transform:uppercase;color:var(--faint);margin-top:4px;
+}
+nav{margin-left:auto;display:flex;gap:4px;align-items:center}
+nav a{
+  font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--dim);padding:10px 13px;border-radius:9px;
+  transition:color .18s,background .18s;white-space:nowrap;
+}
+nav a:hover{color:var(--limau);background:rgba(232,255,138,.07)}
+.who{
+  display:flex;align-items:center;gap:10px;flex:none;
+  border:1px solid var(--line2);border-radius:999px;
+  padding:6px 15px 6px 7px;background:var(--panel);
+  transition:border-color .2s,box-shadow .2s,transform .2s;
+}
+.who:hover{border-color:var(--limau);box-shadow:0 0 0 3px rgba(232,255,138,.12)}
+.who .av{
+  width:30px;height:30px;border-radius:50%;flex:none;
+  background:linear-gradient(140deg,#2f2620,#221b18);
+  border:1px solid var(--line2);
+  display:grid;place-items:center;font-size:15px;line-height:1;
+}
+.who .nm{
+  font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--txt);max-width:110px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.who .nm span{display:block;font-size:8.5px;color:var(--faint);letter-spacing:.2em;margin-top:2px}
+@media(max-width:900px){nav{display:none}}
+@media(max-width:520px){
+  .wrap{padding:0 18px}
+  .brand-txt small{display:none}
+  .who .nm{display:none}
+  .who{padding:5px}
+  .who .av{width:34px;height:34px}
+}
+
+/* ---------- ticker ---------- */
+.ticker{
+  border-bottom:1px solid var(--line);background:var(--bg2);
+  overflow:hidden;white-space:nowrap;padding:9px 0;
+  mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+}
+.ticker-track{display:inline-block;animation:tick 34s linear infinite}
+.ticker span{
+  font-family:var(--f-mono);font-size:10.5px;font-weight:700;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+}
+.ticker b{color:var(--limau);font-weight:800}
+.ticker i{color:var(--koral);font-style:normal;margin:0 20px;font-size:9px}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ---------- hero ---------- */
+.hero{padding:74px 0 40px}
+.hero-grid{
+  display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);
+  gap:56px;align-items:center;
+}
+.hero-eyebrow{
+  display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;
+}
+.pill{
+  font-family:var(--f-mono);font-size:10px;font-weight:800;letter-spacing:.18em;
+  text-transform:uppercase;padding:5px 11px;border-radius:999px;
+  border:1px solid var(--line2);color:var(--dim);white-space:nowrap;
+}
+.pill.limau{background:rgba(232,255,138,.12);border-color:rgba(232,255,138,.45);color:var(--limau)}
+.pill.koral{background:rgba(255,122,92,.12);border-color:rgba(255,122,92,.45);color:var(--koral)}
+
+.display{
+  font-size:clamp(46px,7.6vw,104px);
+  line-height:.9;font-weight:800;letter-spacing:-.035em;
+  text-transform:uppercase;margin-bottom:22px;
+}
+.display .l1{display:block}
+.display .l2{
+  display:block;color:transparent;
+  -webkit-text-stroke:2px var(--limau);
+  text-stroke:2px var(--limau);
+}
+.display .q{color:var(--koral);-webkit-text-stroke:0}
+.hero-tag{
+  font-size:clamp(17px,2.1vw,22px);color:var(--txt);font-weight:600;
+  letter-spacing:-.01em;margin-bottom:14px;
+}
+.hero-tag b{color:var(--limau)}
+.hero-copy{color:var(--dim);font-size:15px;max-width:50ch;margin-bottom:30px}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:34px}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--f-mono);font-weight:800;font-size:12px;
+  letter-spacing:.16em;text-transform:uppercase;
+  padding:16px 26px;border-radius:12px;
+  transition:transform .18s cubic-bezier(.2,.8,.3,1),box-shadow .18s,background .18s,border-color .18s;
+}
+.btn-primary{
+  background:var(--limau);color:var(--ink);
+  box-shadow:0 10px 26px -12px rgba(232,255,138,.8);
+}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 16px 34px -12px rgba(232,255,138,.95)}
+.btn-primary:active{transform:translateY(0)}
+.btn-ghost{border:1px solid var(--line2);color:var(--txt);background:var(--panel)}
+.btn-ghost:hover{border-color:var(--limau);color:var(--limau);transform:translateY(-3px)}
+.hero-stats{
+  display:flex;gap:30px;flex-wrap:wrap;
+  padding-top:24px;border-top:1px solid var(--line);
+}
+.stat b{
+  display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;
+  color:var(--txt);line-height:1.2;
+}
+.stat b em{font-style:normal;color:var(--limau)}
+.stat span{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--faint);
+}
+
+/* ---------- layar konsol (CRT) ---------- */
+.console{
+  border-radius:26px;padding:14px;
+  background:linear-gradient(165deg,#332a24,#1c1613 55%,#100c0b);
+  border:1px solid var(--line2);
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.06);
+  position:relative;
+}
+.console::before{
+  content:"";position:absolute;inset:0;border-radius:26px;pointer-events:none;
+  background:radial-gradient(140% 110% at 50% -10%, rgba(232,255,138,.10), transparent 55%);
+}
+.screen{
+  position:relative;border-radius:16px;overflow:hidden;
+  background:radial-gradient(130% 105% at 50% -12%,#241d17 0%,#120e0c 72%);
+  border:1px solid rgba(232,255,138,.16);
+  box-shadow:inset 0 0 70px rgba(0,0,0,.92), inset 0 0 0 1px rgba(0,0,0,.6);
+  min-height:352px;display:flex;flex-direction:column;
+}
+.screen::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(180deg,rgba(232,255,138,.055) 0 1px,transparent 1px 3px);
+  opacity:.75;
+  animation:flick 5.5s steps(2,end) infinite;
+}
+.screen::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:6;border-radius:16px;
+  background:radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,.55));
+}
+@keyframes flick{0%,96%{opacity:.75}97%{opacity:.62}98%{opacity:.8}100%{opacity:.72}}
+.screen-top,.screen-bot{
+  display:flex;align-items:center;gap:12px;
+  font-family:var(--f-mono);font-size:9.5px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--faint);
+  padding:12px 16px;position:relative;z-index:7;flex-wrap:wrap;
+}
+.screen-top{border-bottom:1px solid rgba(232,255,138,.1)}
+.screen-bot{border-top:1px solid rgba(232,255,138,.1);margin-top:auto}
+.screen-top .sp{margin-left:auto;color:var(--dim)}
+.led{
+  width:7px;height:7px;border-radius:50%;background:var(--koral);flex:none;
+  box-shadow:0 0 8px var(--koral);animation:blip 2s ease-in-out infinite;
+}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+.led.on{background:var(--limau);box-shadow:0 0 8px var(--limau);animation:none}
+.screen-body{padding:24px 20px;position:relative;z-index:7;flex:1}
+.screen-body .micro{margin-bottom:6px}
+.screen-title{
+  font-size:clamp(24px,3.2vw,34px);font-weight:800;letter-spacing:-.02em;
+  text-transform:uppercase;line-height:1.05;margin-bottom:20px;
+}
+.screen-title em{font-style:normal;color:var(--limau)}
+
+.players{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px}
+.player{
+  border-radius:14px;padding:14px 8px 11px;
+  background:linear-gradient(170deg,#2a211c,#1d1714);
+  border:1px solid var(--line);text-align:center;
+  transition:transform .2s cubic-bezier(.2,.8,.3,1),border-color .2s,box-shadow .2s;
+  min-width:0;
+}
+.player:hover{transform:translateY(-4px);border-color:var(--limau);box-shadow:0 12px 26px -14px rgba(232,255,138,.7)}
+.player .pav{
+  width:46px;height:46px;margin:0 auto 9px;border-radius:12px;
+  background:#191411;border:1px solid var(--line2);
+  display:grid;place-items:center;font-size:23px;line-height:1;
+}
+.player .pn{
+  font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.player[aria-pressed="true"]{border-color:var(--limau);box-shadow:0 0 0 2px rgba(232,255,138,.35)}
+.player[aria-pressed="true"] .pav{background:rgba(232,255,138,.14);border-color:rgba(232,255,138,.55)}
+.player[aria-pressed="true"] .pn{color:var(--limau)}
+.player.add{border-style:dashed}
+.player.add .pav{font-size:20px;color:var(--limau)}
+
+.padd{margin-top:16px;padding-top:16px;border-top:1px dashed var(--line)}
+.padd input{
+  width:100%;background:#171210;border:1px solid var(--line2);border-radius:10px;
+  padding:12px 14px;color:var(--txt);font:inherit;font-size:14px;margin-bottom:12px;
+}
+.padd input::placeholder{color:var(--faint)}
+.padd input:focus{outline:none;border-color:var(--limau);box-shadow:0 0 0 3px rgba(232,255,138,.14)}
+.avpick{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
+.avpick button{
+  width:38px;height:38px;border-radius:10px;background:#171210;
+  border:1px solid var(--line2);display:grid;place-items:center;font-size:18px;
+  transition:border-color .16s,background .16s,transform .16s;
+}
+.avpick button:hover{transform:translateY(-2px)}
+.avpick button[aria-pressed="true"]{border-color:var(--limau);background:rgba(232,255,138,.14)}
+.padd-row{display:flex;gap:10px}
+.tiny{
+  font-family:var(--f-mono);font-size:10px;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;padding:11px 18px;border-radius:9px;
+  transition:background .18s,border-color .18s,color .18s;
+}
+.tiny.go{background:var(--limau);color:var(--ink)}
+.tiny.go:hover{background:#f2ffab}
+.tiny.no{border:1px solid var(--line2);color:var(--dim)}
+.tiny.no:hover{border-color:var(--koral);color:var(--koral)}
+@media(max-width:980px){
+  .hero-grid{grid-template-columns:1fr;gap:38px}
+  .console{order:2}
+  .hero{padding:48px 0 30px}
+}
+
+/* ---------- section head ---------- */
+.sec{margin-top:86px}
+.sec-head{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:30px}
+.sec-num{
+  font-family:var(--f-mono);font-size:11px;font-weight:800;letter-spacing:.2em;
+  color:var(--koral);flex:none;
+}
+.sec-head h2{
+  font-size:clamp(24px,3.5vw,40px);font-weight:800;letter-spacing:-.02em;
+  text-transform:uppercase;line-height:1;
+}
+.sec-head small{color:var(--faint);font-size:13px;font-family:var(--f-mono);letter-spacing:.02em}
+.sec-rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent);min-width:40px}
+
+/* ---------- suasana ---------- */
+.moods{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:14px}
+.mood{
+  position:relative;text-align:left;border-radius:var(--r);
+  padding:20px 20px 18px;background:var(--panel);border:1px solid var(--line);
+  transition:transform .2s cubic-bezier(.2,.8,.3,1),border-color .2s,background .2s,box-shadow .2s;
+  overflow:hidden;min-width:0;
+}
+.mood::after{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--limau);transform:scaleY(0);transform-origin:top;
+  transition:transform .28s cubic-bezier(.2,.8,.3,1);
+}
+.mood:hover{transform:translateY(-5px);border-color:var(--line2);box-shadow:var(--shadow)}
+.mood:hover::after{transform:scaleY(1)}
+.mood[aria-pressed="true"]{background:linear-gradient(165deg,#2c2418,#211a17);border-color:var(--limau);box-shadow:0 0 0 1px rgba(232,255,138,.35),0 18px 40px -22px rgba(232,255,138,.6)}
+.mood[aria-pressed="true"]::after{transform:scaleY(1)}
+.mood .mi{font-size:22px;line-height:1;display:block;margin-bottom:14px}
+.mood h3{font-size:14.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+.mood p{font-size:12.5px;color:var(--dim);line-height:1.5}
+.mood .mc{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;color:var(--faint);
+  text-transform:uppercase;margin-top:11px;display:block;
+}
+.mood[aria-pressed="true"] .mc{color:var(--limau)}
+.filter-note{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin-top:18px;
+}
+.filter-note b{color:var(--limau)}
+
+/* ---------- game grid ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:22px}
+.card{
+  display:flex;flex-direction:column;min-width:0;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;position:relative;
+  transition:transform .28s cubic-bezier(.2,.8,.3,1),border-color .28s,box-shadow .28s;
+}
+.card:hover,.card:focus-visible{
+  transform:translateY(-7px);border-color:var(--limau);
+  box-shadow:0 0 0 1px rgba(232,255,138,.28), 0 26px 50px -26px rgba(232,255,138,.5), var(--shadow);
+}
+.card .cover{position:relative;overflow:hidden;background:#0f0b0a;border-bottom:1px solid var(--line)}
+.card .cover svg{display:block;width:100%;height:auto}
+.card .cover::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.16) 0 1px,transparent 1px 4px);
+  opacity:.5;transition:opacity .3s;
+}
+.card:hover .cover::after{opacity:.22}
+.card .idx{
+  position:absolute;top:12px;left:13px;z-index:3;
+  font-family:var(--f-mono);font-size:11px;font-weight:800;letter-spacing:.14em;
+  color:var(--txt);background:rgba(16,12,11,.72);border:1px solid rgba(244,239,226,.22);
+  padding:4px 9px;border-radius:7px;backdrop-filter:blur(6px);
+}
+.card .badge{
+  position:absolute;top:12px;right:13px;z-index:3;
+  font-family:var(--f-mono);font-size:9.5px;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink);background:var(--limau);
+  padding:5px 10px;border-radius:999px;
+}
+.card .scrim{
+  position:absolute;inset:auto 0 0 0;height:58%;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(16,12,11,.86));
+  opacity:0;transition:opacity .3s;
+}
+.card:hover .scrim,.card:focus-visible .scrim{opacity:1}
+.card .play{
+  position:absolute;left:16px;bottom:15px;z-index:4;
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--f-mono);font-size:11.5px;font-weight:800;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink);background:var(--limau);
+  padding:10px 16px;border-radius:10px;
+  opacity:0;transform:translateY(10px);
+  transition:opacity .28s,transform .28s cubic-bezier(.2,.8,.3,1);
+  box-shadow:0 10px 24px -12px rgba(232,255,138,.9);
+}
+.card:hover .play,.card:focus-visible .play{opacity:1;transform:none}
+.card .body{padding:17px 19px 19px;display:flex;flex-direction:column;flex:1;min-width:0}
+.card h3{
+  font-size:17px;font-weight:800;letter-spacing:.01em;text-transform:uppercase;
+  line-height:1.15;transition:color .2s;overflow-wrap:break-word;
+}
+.card:hover h3{color:var(--limau)}
+.card .desc{font-size:13px;color:var(--dim);margin:9px 0 16px;flex:1;line-height:1.55}
+.card .meta{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding-top:13px;border-top:1px solid var(--line);
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint);flex-wrap:wrap;
+}
+.card .meta .ctl{display:inline-flex;align-items:center;gap:6px}
+.card .meta .ctl i{font-style:normal;color:var(--limau);font-size:11px}
+.card .meta .trophy-on{color:var(--limau)}
+
+/* ---------- trofi ---------- */
+.tro-head{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  background:linear-gradient(150deg,#241c15,#1b1513);
+  border:1px solid var(--line);border-radius:var(--r);
+  padding:20px 22px;margin-bottom:20px;
+}
+.tro-count{
+  font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;
+}
+.tro-count em{font-style:normal;color:var(--limau)}
+.tro-head .tinfo{flex:1;min-width:180px}
+.tro-head .tinfo p{font-size:12.5px;color:var(--dim);margin-top:3px}
+.tro-head .tinfo .micro{margin-bottom:5px}
+.tro-head .total{
+  font-family:var(--f-mono);font-size:11px;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);text-align:right;
+}
+.tro-head .total b{display:block;font-size:20px;color:var(--limau);letter-spacing:-.01em;margin-top:4px}
+@media(max-width:520px){.tro-head .total{text-align:left}}
+.trophies{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.trophy{
+  display:flex;align-items:center;gap:14px;min-width:0;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:15px 16px;transition:border-color .2s,transform .2s,background .2s;
+}
+.trophy:hover{transform:translateY(-3px);border-color:var(--line2)}
+.trophy.on{background:linear-gradient(150deg,#2a2316,#1f1915);border-color:rgba(232,255,138,.4)}
+.trophy .tbadge{
+  width:46px;height:46px;flex:none;border-radius:12px;display:grid;place-items:center;
+  font-size:22px;background:#171210;border:1px solid var(--line2);filter:grayscale(1);opacity:.45;
+}
+.trophy.on .tbadge{
+  filter:none;opacity:1;background:rgba(232,255,138,.14);
+  border-color:rgba(232,255,138,.5);box-shadow:0 0 22px -6px rgba(232,255,138,.6);
+}
+.trophy .td{min-width:0;flex:1}
+.trophy .td h3{
+  font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.trophy .td p{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;
+  color:var(--faint);margin-top:4px;
+}
+.trophy.on .td p{color:var(--limau)}
+
+/* ---------- terbaru ---------- */
+.recent{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.rcard{
+  display:flex;align-items:center;gap:14px;min-width:0;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:12px;transition:transform .22s cubic-bezier(.2,.8,.3,1),border-color .22s,box-shadow .22s;
+}
+.rcard:hover{transform:translateY(-4px);border-color:var(--limau);box-shadow:0 16px 34px -20px rgba(232,255,138,.55)}
+.rcard .rthumb{
+  width:74px;height:52px;flex:none;border-radius:9px;overflow:hidden;
+  border:1px solid var(--line2);background:#0f0b0a;
+}
+.rcard .rthumb svg{display:block;width:100%;height:100%}
+.rcard .rt{min-width:0;flex:1}
+.rcard .rt h3{
+  font-size:13.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.rcard .rt p{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--faint);margin-top:4px;
+}
+.rcard .rgo{font-size:16px;color:var(--limau);flex:none;opacity:.55;transition:opacity .2s,transform .2s}
+.rcard:hover .rgo{opacity:1;transform:translateX(3px)}
+.empty{
+  border:1px dashed var(--line2);border-radius:var(--r);padding:36px 24px;text-align:center;
+  color:var(--dim);font-size:14px;background:rgba(33,26,23,.5);
+}
+.empty b{color:var(--limau);display:block;font-size:15px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:7px}
+.empty span{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;color:var(--faint)}
+
+/* ---------- cara main ---------- */
+.ways{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+}
+.way{background:var(--bg2);padding:28px 24px;transition:background .2s}
+.way:hover{background:var(--panel)}
+.way .wnum{
+  font-family:var(--f-mono);font-size:10.5px;font-weight:800;letter-spacing:.2em;
+  color:var(--koral);display:block;margin-bottom:14px;
+}
+.way h3{font-size:13.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.way p{font-size:12.5px;color:var(--dim);line-height:1.55}
+
+/* ---------- footer ---------- */
+footer{margin-top:96px;border-top:1px solid var(--line);background:var(--bg2)}
+.fbar{
+  padding:44px 0;display:flex;flex-wrap:wrap;gap:22px;
+  justify-content:space-between;align-items:center;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--faint);
+}
+.fbar a{color:var(--limau);border-bottom:1px solid transparent;transition:border-color .18s}
+.fbar a:hover{border-color:var(--limau)}
+.fbar .dotrow{color:var(--koral);letter-spacing:0}
+.fmark{display:flex;align-items:center;gap:10px}
+.fmark .brand-mark{width:30px;height:30px;font-size:15px;border-radius:9px;box-shadow:none}
+
+/* ---------- reveal ---------- */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .55s ease,transform .55s cubic-bezier(.2,.8,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,140%);
+  z-index:120;background:var(--limau);color:var(--ink);
+  font-family:var(--f-mono);font-size:11.5px;font-weight:800;
+  letter-spacing:.14em;text-transform:uppercase;
+  padding:14px 24px;border-radius:12px;
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.9);
+  transition:transform .38s cubic-bezier(.2,.8,.3,1);pointer-events:none;
+  max-width:calc(100vw - 36px);text-align:center;
+}
+.toast.show{transform:translate(-50%,0)}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .ticker-track,.screen::after,.led{animation:none}
+  .reveal{opacity:1;transform:none;transition:none}
+  *{transition-duration:.01ms!important}
+}
+@media(max-width:640px){
+  .hero{padding:40px 0 24px}
+  .sec{margin-top:62px}
+  .grid{grid-template-columns:1fr;gap:18px}
+  .moods{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px}
+  .mood{padding:16px 15px 14px}
+  .mood .mi{font-size:19px;margin-bottom:10px}
+  .mood h3{font-size:13px}
+  .display{letter-spacing:-.03em}
+  .hero-stats{gap:22px}
+  .screen{min-height:0}
+  .fbar{flex-direction:column;align-items:flex-start;gap:14px}
+}
+@media(max-width:380px){
+  .wrap{padding:0 15px}
+  .players{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:9px}
+}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Lewati ke konten</a>
+
+<header>
+  <div class="wrap hbar">
+    <a class="brand" href="/games/" aria-label="Jekardah Play — beranda">
+      <span class="brand-mark" aria-hidden="true">J</span>
+      <span class="brand-txt">
+        <b>Jekardah <em>Play</em></b>
+        <small>Sedikit jeda. Banyak main.</small>
+      </span>
+    </a>
+    <nav aria-label="Navigasi utama">
+      <a href="#suasana">Suasana</a>
+      <a href="#game">Game</a>
+      <a href="#trofi">Trofi</a>
+      <a href="#terbaru">Terbaru</a>
+    </nav>
+    <button class="who" id="whoBtn" aria-label="Ganti pemain">
+      <span class="av" id="whoAv" aria-hidden="true">🎮</span>
+      <span class="nm" id="whoNm">Pemain 01<span>Aktif</span></span>
+    </button>
+  </div>
+</header>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<main id="main">
+  <div class="wrap">
+
+    <!-- ================= HERO ================= -->
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-eyebrow">
+            <span class="pill limau">Konsol 01</span>
+            <span class="pill">6 game · HTML5</span>
+            <span class="pill koral">Tanpa install</span>
+          </div>
+
+          <h1 class="display" id="heroTitle">
+            <span class="l1">Siapa yang</span>
+            <span class="l2">Main<span class="q">?</span></span>
+          </h1>
+
+          <p class="hero-tag">Sedikit jeda. <b>Banyak main.</b></p>
+          <p class="hero-copy">
+            Enam game orisinal bertema Nusantara — duel wayang di bawah bulan,
+            lari di gang kampung, becak senja Jakarta. Semua jalan di browser:
+            kontrol sentuh siap, tanpa unduh, tetap hidup saat sinyal hilang.
+          </p>
+
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#game">▶ Mulai main</a>
+            <a class="btn btn-ghost" href="#trofi">◇ Lihat trofi</a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat"><b>6</b><span>Game orisinal</span></div>
+            <div class="stat"><b>0 <em>CDN</em></b><span>Tanpa dependency</span></div>
+            <div class="stat"><b><em>Offline</em></b><span>Sekali buka, jalan terus</span></div>
+          </div>
+        </div>
+
+        <!-- layar konsol -->
+        <div class="console">
+          <div class="screen">
+            <div class="screen-top">
+              <span class="led" aria-hidden="true"></span>
+              <span>JEK-PLAY</span>
+              <span>· Konsol 01</span>
+              <span class="sp" id="screenClock">--:--</span>
+            </div>
+
+            <div class="screen-body">
+              <p class="micro micro-limau">Pilih pemain</p>
+              <h2 class="screen-title">Siapa yang <em>main?</em></h2>
+              <div class="players" id="players" role="group" aria-label="Daftar pemain"></div>
+
+              <div class="padd" id="padd" hidden>
+                <input id="pName" maxlength="14" placeholder="Nama pemain" aria-label="Nama pemain baru" autocomplete="off">
+                <div class="avpick" id="avPick" role="group" aria-label="Pilih avatar"></div>
+                <div class="padd-row">
+                  <button class="tiny go" id="pSave">Simpan</button>
+                  <button class="tiny no" id="pCancel">Batal</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="screen-bot">
+              <span id="screenMsg">Siap dimainkan — pilih kartu untuk mulai</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SUASANA ================= -->
+    <section class="sec" id="suasana" aria-labelledby="suasanaTitle">
+      <div class="sec-head reveal">
+        <span class="sec-num">01</span>
+        <h2 id="suasanaTitle">Pilih suasana</h2>
+        <span class="sec-rule"></span>
+        <small>Mau cepat, lari, cerita, atau santai?</small>
+      </div>
+      <div class="moods reveal" id="moods" role="group" aria-label="Filter kategori suasana"></div>
+      <p class="filter-note" id="filterNote" aria-live="polite"></p>
+    </section>
+
+    <!-- ================= GAME ================= -->
+    <section class="sec" id="game" aria-labelledby="gameTitle">
+      <div class="sec-head reveal">
+        <span class="sec-num">02</span>
+        <h2 id="gameTitle">Semua game</h2>
+        <span class="sec-rule"></span>
+        <small>Enam judul — satu rasa Nusantara</small>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <!-- ================= TROFI ================= -->
+    <section class="sec" id="trofi" aria-labelledby="trofiTitle">
+      <div class="sec-head reveal">
+        <span class="sec-num">03</span>
+        <h2 id="trofiTitle">Trofi</h2>
+        <span class="sec-rule"></span>
+        <small>Rekor tersimpan di perangkat ini</small>
+      </div>
+      <div class="tro-head reveal">
+        <div class="tro-count" id="troCount"><em>0</em>/6</div>
+        <div class="tinfo">
+          <p class="micro">Trofi terbuka</p>
+          <p id="troMsg">Belum ada trofi. Main satu game, rekor pertamamu langsung tersimpan di sini.</p>
+        </div>
+        <div class="total">Total rekor<b id="troTotal">0</b></div>
+      </div>
+      <div class="trophies" id="trophies"></div>
+    </section>
+
+    <!-- ================= TERBARU ================= -->
+    <section class="sec" id="terbaru" aria-labelledby="terbaruTitle">
+      <div class="sec-head reveal">
+        <span class="sec-num">04</span>
+        <h2 id="terbaruTitle">Terbaru dimainkan</h2>
+        <span class="sec-rule"></span>
+        <small>Riwayat singkat di perangkat ini</small>
+      </div>
+      <div class="recent" id="recent"></div>
+    </section>
+
+    <!-- ================= CARA MAIN ================= -->
+    <section class="sec" id="cara" aria-labelledby="caraTitle">
+      <div class="sec-head reveal">
+        <span class="sec-num">05</span>
+        <h2 id="caraTitle">Cara main</h2>
+        <span class="sec-rule"></span>
+        <small>Tiga langkah — tanpa ribet</small>
+      </div>
+      <div class="ways reveal">
+        <div class="way">
+          <span class="wnum">01 — Pilih</span>
+          <h3>Pilih pemain &amp; game</h3>
+          <p>Tekan salah satu kartu di atas. Semua game langsung jalan di browser — tanpa install, tanpa daftar, tanpa iklan.</p>
+        </div>
+        <div class="way">
+          <span class="wnum">02 — Main</span>
+          <h3>Kontrol otomatis</h3>
+          <p>Di desktop pakai keyboard; di HP kontrol sentuh muncul sendiri di layar. Nada dan efek suara dibuat langsung di browser.</p>
+        </div>
+        <div class="way">
+          <span class="wnum">03 — Ulangi</span>
+          <h3>Pecahkan rekor</h3>
+          <p>Rekor tersimpan di perangkatmu dan muncul sebagai trofi di halaman ini. Kalah? Satu lagi. Selalu satu lagi.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap fbar">
+    <span class="fmark">
+      <span class="brand-mark" aria-hidden="true">J</span>
+      <span>© 2026 <a href="/">Jekardah</a> <span class="dotrow">■■</span> Play</span>
+    </span>
+    <span>Sedikit jeda. Banyak main.</span>
+    <span>Dibuat di Jakarta — tanpa CDN, tanpa iklan</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* =====================================================================
+   JEKARDAH PLAY — portal. Zero dependency, offline-ready.
+   Kunci localStorage yang dipakai mesin game: "jek_hi_<slug>"
+   ===================================================================== */
+
+/* ---------------- data game ---------------- */
+const GAMES = [
+  {
+    slug:"wayang-rush", title:"Wayang Rush", badge:"Aksi", mood:"duel",
+    desc:"Duel pedang wayang di bawah bulan purnama — parry tepat waktu, balas dua serangan, taklukkan tiga fase bos.",
+    cover:`<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" role="img" aria-label="Dua wayang berduel keris di bawah bulan purnama">
+  <rect width="480" height="300" fill="#150e2b"/>
+  <rect x="0" y="0" width="480" height="192" fill="#1e1442"/>
+  <rect x="0" y="192" width="480" height="40" fill="#191038"/>
+  <rect x="42" y="30" width="4" height="4" fill="#f7efd2" opacity=".7"/>
+  <rect x="94" y="64" width="4" height="4" fill="#f7efd2" opacity=".45"/>
+  <rect x="138" y="20" width="4" height="4" fill="#f7efd2" opacity=".5"/>
+  <rect x="394" y="38" width="4" height="4" fill="#f7efd2" opacity=".7"/>
+  <rect x="434" y="96" width="4" height="4" fill="#f7efd2" opacity=".4"/>
+  <rect x="356" y="116" width="4" height="4" fill="#f7efd2" opacity=".4"/>
+  <circle cx="240" cy="88" r="58" fill="#f7efd2"/>
+  <rect x="206" y="58" width="22" height="22" fill="#e6dcbb"/>
+  <rect x="258" y="98" width="28" height="24" fill="#e6dcbb"/>
+  <rect x="226" y="120" width="18" height="16" fill="#e6dcbb"/>
+  <rect x="24" y="118" width="92" height="11" fill="#2b1c5c"/>
+  <rect x="50" y="107" width="56" height="11" fill="#2b1c5c"/>
+  <rect x="362" y="146" width="94" height="11" fill="#2b1c5c"/>
+  <rect x="392" y="135" width="58" height="11" fill="#2b1c5c"/>
+  <rect x="0" y="232" width="480" height="68" fill="#0e0920"/>
+  <rect x="0" y="228" width="480" height="5" fill="#2c1d5a"/>
+  <rect x="30" y="248" width="26" height="52" fill="#1d1442"/>
+  <rect x="424" y="248" width="26" height="52" fill="#1d1442"/>
+  <g transform="translate(192,236)">
+    <rect x="-9" y="-44" width="7" height="44" fill="#2c1d5a"/>
+    <rect x="2" y="-44" width="7" height="44" fill="#2c1d5a"/>
+    <rect x="-15" y="-70" width="30" height="28" fill="#c9922f"/>
+    <rect x="-15" y="-70" width="30" height="6" fill="#e8b84b"/>
+    <rect x="-9" y="-70" width="4" height="28" fill="#a8761f"/>
+    <rect x="6" y="-70" width="4" height="28" fill="#a8761f"/>
+    <rect x="-11" y="-104" width="22" height="36" fill="#e8b84b"/>
+    <rect x="-11" y="-104" width="22" height="6" fill="#f2d98a"/>
+    <rect x="-27" y="-100" width="17" height="8" fill="#c9922f"/>
+    <rect x="-5" y="-112" width="10" height="9" fill="#e5c98a"/>
+    <rect x="-10" y="-136" width="20" height="25" fill="#f4dd9a"/>
+    <rect x="10" y="-128" width="9" height="8" fill="#f4dd9a"/>
+    <rect x="-2" y="-131" width="7" height="6" fill="#150e2b"/>
+    <rect x="-7" y="-119" width="13" height="4" fill="#c9922f"/>
+    <rect x="-13" y="-148" width="24" height="13" fill="#c9922f"/>
+    <rect x="-16" y="-156" width="30" height="9" fill="#e8b84b"/>
+    <rect x="6" y="-166" width="6" height="11" fill="#e8b84b"/>
+    <rect x="4" y="-172" width="10" height="7" fill="#e8ff8a"/>
+    <g transform="rotate(-26 40 -96)">
+      <rect x="11" y="-100" width="30" height="9" fill="#e8b84b"/>
+      <rect x="36" y="-104" width="14" height="15" fill="#c98d5a"/>
+      <rect x="48" y="-150" width="7" height="48" fill="#e3ead6"/>
+      <rect x="46" y="-156" width="11" height="7" fill="#e8ff8a"/>
+    </g>
+  </g>
+  <g transform="translate(288,236) scale(-1,1)">
+    <rect x="-9" y="-44" width="7" height="44" fill="#2c1d5a"/>
+    <rect x="2" y="-44" width="7" height="44" fill="#2c1d5a"/>
+    <rect x="-15" y="-70" width="30" height="28" fill="#a8761f"/>
+    <rect x="-15" y="-70" width="30" height="6" fill="#c9922f"/>
+    <rect x="-9" y="-70" width="4" height="28" fill="#8a6626"/>
+    <rect x="6" y="-70" width="4" height="28" fill="#8a6626"/>
+    <rect x="-11" y="-104" width="22" height="36" fill="#c9922f"/>
+    <rect x="-11" y="-104" width="22" height="6" fill="#e8b84b"/>
+    <rect x="-27" y="-100" width="17" height="8" fill="#a8761f"/>
+    <rect x="-5" y="-112" width="10" height="9" fill="#c9a86a"/>
+    <rect x="-10" y="-136" width="20" height="25" fill="#e5c98a"/>
+    <rect x="10" y="-128" width="9" height="8" fill="#e5c98a"/>
+    <rect x="-2" y="-131" width="7" height="6" fill="#150e2b"/>
+    <rect x="-7" y="-119" width="13" height="4" fill="#8a6626"/>
+    <rect x="-13" y="-148" width="24" height="13" fill="#a8761f"/>
+    <rect x="-16" y="-156" width="30" height="9" fill="#c9922f"/>
+    <rect x="6" y="-166" width="6" height="11" fill="#c9922f"/>
+    <rect x="4" y="-172" width="10" height="7" fill="#ff7a5c"/>
+    <g transform="rotate(-26 40 -96)">
+      <rect x="11" y="-100" width="30" height="9" fill="#c9922f"/>
+      <rect x="36" y="-104" width="14" height="15" fill="#a8761f"/>
+      <rect x="48" y="-150" width="7" height="48" fill="#e3ead6"/>
+      <rect x="46" y="-156" width="11" height="7" fill="#ff7a5c"/>
+    </g>
+  </g>
+  <rect x="228" y="60" width="9" height="26" fill="#e8ff8a"/>
+  <rect x="243" y="60" width="9" height="26" fill="#e8ff8a"/>
+  <rect x="215" y="71" width="50" height="9" fill="#e8ff8a"/>
+  <rect x="222" y="80" width="36" height="7" fill="#f6ffc4"/>
+  <rect x="236" y="52" width="8" height="10" fill="#ff7a5c"/>
+  <rect x="236" y="98" width="8" height="10" fill="#ff7a5c"/>
+  <rect x="206" y="84" width="10" height="6" fill="#ff7a5c"/>
+  <rect x="264" y="84" width="10" height="6" fill="#ff7a5c"/>
+</svg>`
+  },
+  {
+    slug:"kampung-runner", title:"Kampung Runner", badge:"Endless", mood:"lari",
+    desc:"Lari di jalan kampung, lompati genteng dan ayam, kumpulkan ketupat sebanyak mungkin sebelum kehabisan napas.",
+    cover:`<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" role="img" aria-label="Pelari melintasi kampung dengan ketupat dan ayam">
+  <rect width="480" height="300" fill="#1a2415"/>
+  <rect x="0" y="0" width="480" height="118" fill="#243318"/>
+  <rect x="0" y="118" width="480" height="80" fill="#2c3c1e"/>
+  <circle cx="392" cy="60" r="36" fill="#e8ff8a"/>
+  <circle cx="392" cy="60" r="36" fill="#f6ffc4" opacity=".35"/>
+  <rect x="20" y="34" width="70" height="10" fill="#33461f"/>
+  <rect x="40" y="24" width="42" height="10" fill="#33461f"/>
+  <rect x="286" y="96" width="76" height="10" fill="#33461f"/>
+  <rect x="308" y="86" width="44" height="10" fill="#33461f"/>
+  <rect x="34" y="112" width="128" height="70" fill="#8a5a34"/>
+  <path d="M18 114 L98 72 L178 114 Z" fill="#4e3520"/>
+  <rect x="18" y="110" width="160" height="8" fill="#5c4026"/>
+  <rect x="60" y="134" width="28" height="48" fill="#2e1d10"/>
+  <rect x="116" y="132" width="32" height="28" fill="#e8ff8a" opacity=".85"/>
+  <rect x="122" y="138" width="20" height="16" fill="#1a2415"/>
+  <rect x="196" y="122" width="112" height="60" fill="#7d5030"/>
+  <path d="M182 124 L252 88 L322 124 Z" fill="#452e1c"/>
+  <rect x="182" y="120" width="140" height="8" fill="#523620"/>
+  <rect x="222" y="140" width="24" height="42" fill="#2e1d10"/>
+  <rect x="272" y="138" width="26" height="24" fill="#ff7a5c" opacity=".8"/>
+  <rect x="0" y="196" width="480" height="104" fill="#8a6a3e"/>
+  <rect x="0" y="196" width="480" height="8" fill="#6a4e2c"/>
+  <rect x="0" y="252" width="480" height="48" fill="#7a5a34"/>
+  <rect x="40" y="238" width="46" height="7" fill="#6a4e2c"/>
+  <rect x="196" y="238" width="46" height="7" fill="#6a4e2c"/>
+  <rect x="352" y="238" width="46" height="7" fill="#6a4e2c"/>
+  <g transform="translate(150,150) rotate(45)">
+    <rect x="-13" y="-13" width="26" height="26" fill="#e8ff8a"/>
+    <rect x="-13" y="-3" width="26" height="5" fill="#b9d24e"/>
+    <rect x="-3" y="-13" width="5" height="26" fill="#b9d24e"/>
+  </g>
+  <g transform="translate(196,104) rotate(45)">
+    <rect x="-10" y="-10" width="20" height="20" fill="#f4efe2"/>
+    <rect x="-10" y="-2" width="20" height="4" fill="#c9c2ae"/>
+    <rect x="-2" y="-10" width="4" height="20" fill="#c9c2ae"/>
+  </g>
+  <g transform="translate(414,164) rotate(45)">
+    <rect x="-12" y="-12" width="24" height="24" fill="#e8ff8a"/>
+    <rect x="-12" y="-3" width="24" height="5" fill="#b9d24e"/>
+    <rect x="-3" y="-12" width="5" height="24" fill="#b9d24e"/>
+  </g>
+  <g transform="translate(300,238)">
+    <rect x="-11" y="-34" width="22" height="28" fill="#ff7a5c"/>
+    <rect x="-7" y="-34" width="14" height="9" fill="#f4efe2"/>
+    <rect x="-9" y="-50" width="18" height="16" fill="#c98d5a"/>
+    <rect x="-6" y="-46" width="5" height="5" fill="#1a1408"/>
+    <rect x="2" y="-46" width="5" height="5" fill="#1a1408"/>
+    <rect x="-19" y="-30" width="9" height="6" fill="#c98d5a"/>
+    <rect x="10" y="-30" width="9" height="6" fill="#c98d5a"/>
+    <rect x="-14" y="-6" width="9" height="14" fill="#2a3a6a"/>
+    <rect x="5" y="-6" width="9" height="14" fill="#2a3a6a"/>
+    <rect x="-22" y="-6" width="10" height="7" fill="#e8ff8a"/>
+  </g>
+  <g transform="translate(86,252)">
+    <rect x="-14" y="-16" width="28" height="16" fill="#e8e2d0"/>
+    <rect x="-20" y="-13" width="8" height="9" fill="#f4efe2"/>
+    <rect x="-18" y="-20" width="9" height="8" fill="#ff7a5c"/>
+    <rect x="-14" y="-22" width="7" height="7" fill="#ff7a5c"/>
+    <rect x="12" y="-12" width="12" height="6" fill="#e8ff8a"/>
+    <rect x="-6" y="-2" width="5" height="8" fill="#c98d5a"/>
+    <rect x="3" y="-2" width="5" height="8" fill="#c98d5a"/>
+  </g>
+  <rect x="368" y="216" width="16" height="16" fill="#3f7a3a"/>
+  <rect x="371" y="219" width="10" height="10" fill="#5aa04e"/>
+  <rect x="52" y="212" width="16" height="16" fill="#3f7a3a"/>
+  <rect x="55" y="215" width="10" height="10" fill="#5aa04e"/>
+</svg>`
+  },
+  {
+    slug:"jakarta-dusk", title:"Jakarta Dusk", badge:"Arcade", mood:"lari",
+    desc:"Naik becak, tembak drone di langit senja Jakarta, dan bertahan sampai lampu jalan terakhir padam.",
+    cover:`<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" role="img" aria-label="Becak melaju di jalan Jakarta saat senja sambil menembak drone">
+  <rect width="480" height="300" fill="#3a1c2e"/>
+  <rect x="0" y="0" width="480" height="58" fill="#4a2036"/>
+  <rect x="0" y="58" width="480" height="46" fill="#6a2f3e"/>
+  <rect x="0" y="104" width="480" height="44" fill="#93423f"/>
+  <rect x="0" y="148" width="480" height="34" fill="#c2593f"/>
+  <circle cx="96" cy="112" r="30" fill="#ff7a5c"/>
+  <circle cx="96" cy="112" r="30" fill="#ffd08a" opacity=".35"/>
+  <rect x="30" y="18" width="120" height="10" fill="#57263a"/>
+  <rect x="330" y="30" width="130" height="10" fill="#57263a"/>
+  <rect x="240" y="140" width="10" height="80" fill="#241222"/>
+  <rect x="80" y="150" width="10" height="70" fill="#241222"/>
+  <rect x="392" y="132" width="10" height="88" fill="#241222"/>
+  <rect x="150" y="118" width="34" height="60" fill="#241222"/>
+  <rect x="212" y="100" width="26" height="78" fill="#241222"/>
+  <rect x="300" y="112" width="38" height="66" fill="#241222"/>
+  <rect x="352" y="146" width="22" height="52" fill="#241222"/>
+  <rect x="120" y="160" width="16" height="40" fill="#2c1628"/>
+  <rect x="182" y="150" width="14" height="48" fill="#2c1628"/>
+  <rect x="346" y="122" width="5" height="10" fill="#e8ff8a"/>
+  <rect x="214" y="106" width="5" height="10" fill="#e8ff8a"/>
+  <rect x="0" y="182" width="480" height="118" fill="#1c1220"/>
+  <rect x="0" y="182" width="480" height="6" fill="#43283c"/>
+  <rect x="24" y="236" width="60" height="8" fill="#3a2438"/>
+  <rect x="176" y="236" width="60" height="8" fill="#3a2438"/>
+  <rect x="328" y="236" width="60" height="8" fill="#3a2438"/>
+  <g transform="translate(56,182)">
+    <rect x="-4" y="-96" width="5" height="60" fill="#241222"/>
+    <rect x="-16" y="-100" width="30" height="5" fill="#241222"/>
+    <rect x="-9" y="-94" width="16" height="8" fill="#ffd08a"/>
+  </g>
+  <g transform="translate(424,182)">
+    <rect x="-4" y="-96" width="5" height="60" fill="#241222"/>
+    <rect x="-16" y="-100" width="30" height="5" fill="#241222"/>
+    <rect x="-9" y="-94" width="16" height="8" fill="#ffd08a"/>
+  </g>
+  <g transform="translate(226,214)">
+    <rect x="-56" y="-22" width="112" height="26" fill="#2a4a3a"/>
+    <rect x="-56" y="-22" width="112" height="7" fill="#3f7a5a"/>
+    <rect x="-34" y="-46" width="40" height="26" fill="#e8ff8a"/>
+    <rect x="-29" y="-41" width="30" height="16" fill="#f6ffc4"/>
+    <rect x="-30" y="-8" width="60" height="6" fill="#1f3a2c"/>
+    <rect x="-70" y="4" width="22" height="22" fill="#141018"/>
+    <rect x="-66" y="8" width="14" height="14" fill="#3a3a44"/>
+    <rect x="48" y="4" width="22" height="22" fill="#141018"/>
+    <rect x="52" y="8" width="14" height="14" fill="#3a3a44"/>
+    <rect x="-6" y="-58" width="12" height="14" fill="#c98d5a"/>
+    <rect x="-14" y="-60" width="28" height="6" fill="#8a5a34"/>
+    <rect x="-8" y="-40" width="16" height="18" fill="#ff7a5c"/>
+  </g>
+  <g transform="translate(378,52)">
+    <rect x="-11" y="-5" width="22" height="11" fill="#8a8a96"/>
+    <rect x="-14" y="-8" width="28" height="4" fill="#6a6a76"/>
+    <rect x="-14" y="4" width="28" height="4" fill="#6a6a76"/>
+    <rect x="-3" y="5" width="6" height="8" fill="#ff7a5c"/>
+    <rect x="-3" y="-13" width="6" height="5" fill="#ff7a5c"/>
+  </g>
+  <g transform="translate(120,36)">
+    <rect x="-9" y="-4" width="18" height="9" fill="#767684"/>
+    <rect x="-12" y="-6" width="24" height="3" fill="#5a5a66"/>
+    <rect x="-12" y="3" width="24" height="3" fill="#5a5a66"/>
+  </g>
+  <rect x="398" y="96" width="4" height="26" fill="#e8ff8a" opacity=".85"/>
+  <rect x="392" y="120" width="16" height="4" fill="#e8ff8a" opacity=".85"/>
+</svg>`
+  },
+  {
+    slug:"temple-runout", title:"Temple Runout", badge:"Puzzle", mood:"cerita",
+    desc:"Telusuri labirin candi Nusantara, kumpulkan tiga artefak, dan hindari penjaga batu yang berpatroli.",
+    cover:`<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" role="img" aria-label="Candi bertingkat dengan artefak bercahaya dan penjaga batu">
+  <rect width="480" height="300" fill="#22200f"/>
+  <rect x="0" y="0" width="480" height="96" fill="#2f2c16"/>
+  <rect x="0" y="96" width="480" height="54" fill="#3a3619"/>
+  <circle cx="240" cy="72" r="42" fill="#e8ff8a"/>
+  <circle cx="240" cy="72" r="42" fill="#f6ffc4" opacity=".3"/>
+  <rect x="0" y="150" width="480" height="150" fill="#2a2810"/>
+  <rect x="0" y="150" width="480" height="5" fill="#3f3a18"/>
+  <path d="M150 150 L168 118 L180 118 L180 150 Z" fill="#6a6132"/>
+  <rect x="146" y="86" width="188" height="18" fill="#6a6132"/>
+  <rect x="132" y="104" width="216" height="16" fill="#5a5230"/>
+  <rect x="118" y="120" width="244" height="16" fill="#4e4828"/>
+  <rect x="104" y="136" width="272" height="16" fill="#443e22"/>
+  <rect x="90" y="152" width="300" height="16" fill="#3a3418"/>
+  <rect x="212" y="66" width="56" height="22" fill="#7a7138"/>
+  <rect x="222" y="52" width="36" height="16" fill="#8a8142"/>
+  <rect x="234" y="40" width="14" height="14" fill="#e8ff8a"/>
+  <rect x="222" y="120" width="36" height="48" fill="#17150a"/>
+  <rect x="228" y="126" width="24" height="42" fill="#0f0e06"/>
+  <rect x="118" y="152" width="30" height="60" fill="#4e4828"/>
+  <rect x="332" y="152" width="30" height="60" fill="#4e4828"/>
+  <rect x="122" y="146" width="22" height="8" fill="#5a5230"/>
+  <rect x="336" y="146" width="22" height="8" fill="#5a5230"/>
+  <rect x="62" y="168" width="18" height="44" fill="#3a3418"/>
+  <rect x="66" y="162" width="10" height="8" fill="#4e4828"/>
+  <rect x="400" y="168" width="18" height="44" fill="#3a3418"/>
+  <rect x="404" y="162" width="10" height="8" fill="#4e4828"/>
+  <rect x="176" y="196" width="18" height="18" fill="#3aa0c0"/>
+  <rect x="179" y="199" width="12" height="12" fill="#6ad0ea"/>
+  <rect x="286" y="196" width="18" height="18" fill="#3aa0c0"/>
+  <rect x="289" y="199" width="12" height="12" fill="#6ad0ea"/>
+  <g transform="translate(70,240)">
+    <rect x="-13" y="-40" width="26" height="34" fill="#8a8272"/>
+    <rect x="-15" y="-56" width="30" height="18" fill="#9a9282"/>
+    <rect x="-10" y="-52" width="7" height="8" fill="#17150a"/>
+    <rect x="3" y="-52" width="7" height="8" fill="#17150a"/>
+    <rect x="-4" y="-40" width="8" height="6" fill="#17150a"/>
+    <rect x="-19" y="-34" width="8" height="22" fill="#7a7262"/>
+    <rect x="11" y="-34" width="8" height="22" fill="#7a7262"/>
+  </g>
+  <g transform="translate(410,240)">
+    <rect x="-13" y="-40" width="26" height="34" fill="#7d7565"/>
+    <rect x="-15" y="-56" width="30" height="18" fill="#8d8575"/>
+    <rect x="-10" y="-52" width="7" height="8" fill="#17150a"/>
+    <rect x="3" y="-52" width="7" height="8" fill="#17150a"/>
+    <rect x="-4" y="-40" width="8" height="6" fill="#17150a"/>
+  </g>
+  <rect x="0" y="264" width="480" height="36" fill="#232110"/>
+  <rect x="0" y="264" width="480" height="4" fill="#332f16"/>
+</svg>`
+  },
+  {
+    slug:"nasi-goreng-chef", title:"Nasi Goreng Chef", badge:"Strategi", mood:"santai",
+    desc:"Dapur ramai! Ambil pesanan, masak sesuai urutan, dan jangan sampai ada nasi yang gosong.",
+    cover:`<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" role="img" aria-label="Wajan nasi goreng berapi di atas kompor dengan koki siap melayani">
+  <rect width="480" height="300" fill="#2a1e10"/>
+  <rect x="0" y="0" width="480" height="76" fill="#33250f"/>
+  <rect x="30" y="14" width="66" height="50" fill="#e8ff8a" opacity=".1"/>
+  <rect x="150" y="14" width="66" height="50" fill="#e8ff8a" opacity=".1"/>
+  <rect x="270" y="14" width="66" height="50" fill="#e8ff8a" opacity=".1"/>
+  <rect x="390" y="14" width="66" height="50" fill="#e8ff8a" opacity=".1"/>
+  <rect x="0" y="76" width="480" height="8" fill="#5a4220"/>
+  <rect x="52" y="40" width="26" height="34" fill="#6a5226"/>
+  <rect x="56" y="34" width="18" height="8" fill="#8a6a2e"/>
+  <rect x="392" y="44" width="26" height="30" fill="#6a5226"/>
+  <rect x="396" y="38" width="18" height="8" fill="#8a6a2e"/>
+  <rect x="0" y="150" width="480" height="150" fill="#4e3a1a"/>
+  <rect x="0" y="150" width="480" height="7" fill="#6a5226"/>
+  <rect x="0" y="246" width="480" height="54" fill="#43310f"/>
+  <rect x="0" y="246" width="480" height="5" fill="#5a4220"/>
+  <g transform="translate(196,150)">
+    <rect x="-64" y="0" width="128" height="34" fill="#8a2e2e"/>
+    <ellipse cx="0" cy="4" rx="66" ry="12" fill="#a03a3a"/>
+    <ellipse cx="0" cy="0" rx="56" ry="10" fill="#f5e8c8"/>
+    <ellipse cx="0" cy="-3" rx="46" ry="8" fill="#fdf6e0"/>
+    <rect x="-26" y="-8" width="14" height="9" fill="#ff7a5c"/>
+    <rect x="4" y="-10" width="14" height="9" fill="#3f7a3a"/>
+    <rect x="-12" y="-4" width="12" height="7" fill="#e8ff8a"/>
+    <rect x="20" y="-6" width="12" height="7" fill="#c98d5a"/>
+    <rect x="-8" y="-40" width="16" height="6" fill="#8a8a96"/>
+    <rect x="-30" y="-62" width="60" height="6" fill="#c0c0cc"/>
+    <rect x="-30" y="-68" width="6" height="12" fill="#8a8a96"/>
+    <rect x="24" y="-68" width="6" height="12" fill="#8a8a96"/>
+    <rect x="-58" y="-30" width="22" height="10" fill="#3a3a44"/>
+    <rect x="36" y="-30" width="22" height="10" fill="#3a3a44"/>
+  </g>
+  <rect x="176" y="186" width="40" height="12" fill="#ff7a5c"/>
+  <rect x="188" y="176" width="16" height="12" fill="#ffd08a"/>
+  <rect x="180" y="198" width="32" height="10" fill="#e8ff8a"/>
+  <rect x="186" y="208" width="20" height="8" fill="#ff7a5c" opacity=".7"/>
+  <g transform="translate(348,146)">
+    <rect x="-22" y="-42" width="44" height="50" fill="#ff7a5c"/>
+    <rect x="-17" y="-36" width="34" height="12" fill="#f4efe2"/>
+    <rect x="-17" y="-16" width="34" height="10" fill="#f4efe2"/>
+    <rect x="-28" y="-58" width="56" height="18" fill="#c98d5a"/>
+    <rect x="-20" y="-54" width="8" height="9" fill="#171018"/>
+    <rect x="10" y="-54" width="8" height="9" fill="#171018"/>
+    <rect x="-6" y="-34" width="12" height="6" fill="#171018"/>
+    <rect x="-8" y="8" width="16" height="14" fill="#c98d5a"/>
+  </g>
+  <circle cx="272" cy="206" r="7" fill="#e8ff8a"/>
+  <circle cx="292" cy="220" r="6" fill="#ff7a5c"/>
+  <circle cx="120" cy="212" r="6" fill="#e8ff8a"/>
+  <circle cx="104" cy="228" r="5" fill="#3f7a3a"/>
+  <rect x="42" y="196" width="40" height="46" fill="#8a2e2e"/>
+  <rect x="50" y="186" width="24" height="12" fill="#a03a3a"/>
+  <rect x="48" y="186" width="28" height="5" fill="#c98d5a"/>
+  <rect x="404" y="192" width="34" height="50" fill="#8a2e2e"/>
+  <rect x="410" y="182" width="22" height="12" fill="#a03a3a"/>
+  <rect x="410" y="182" width="22" height="5" fill="#c98d5a"/>
+</svg>`
+  },
+  {
+    slug:"badminton-pagi", title:"Badminton Pagi", badge:"Olahraga", mood:"duel",
+    desc:"Rally badminton 2D di lapangan pagi buta — baca arah kok dan kalahkan AI dengan smash yang jitu.",
+    cover:`<svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" role="img" aria-label="Dua pemain badminton beradu di lapangan saat pagi">
+  <rect width="480" height="300" fill="#142638"/>
+  <rect x="0" y="0" width="480" height="96" fill="#1c3248"/>
+  <circle cx="104" cy="52" r="30" fill="#f7efd2" opacity=".75"/>
+  <circle cx="104" cy="52" r="30" fill="#e8ff8a" opacity=".18"/>
+  <rect x="0" y="96" width="480" height="10" fill="#2a4a66"/>
+  <rect x="28" y="34" width="66" height="9" fill="#26405a"/>
+  <rect x="356" y="46" width="88" height="9" fill="#26405a"/>
+  <rect x="0" y="200" width="480" height="100" fill="#1e3a52"/>
+  <rect x="0" y="196" width="480" height="6" fill="#2a4a66"/>
+  <rect x="0" y="232" width="480" height="5" fill="#2a4a66"/>
+  <rect x="0" y="270" width="480" height="5" fill="#2a4a66"/>
+  <rect x="60" y="196" width="5" height="104" fill="#2a4a66"/>
+  <rect x="415" y="196" width="5" height="104" fill="#2a4a66"/>
+  <rect x="0" y="150" width="480" height="6" fill="#3a6a8a"/>
+  <rect x="0" y="146" width="480" height="4" fill="#f4efe2" opacity=".85"/>
+  <rect x="46" y="150" width="12" height="46" fill="#3a6a8a"/>
+  <rect x="422" y="150" width="12" height="46" fill="#3a6a8a"/>
+  <rect x="238" y="46" width="4" height="104" fill="#0e1a26" opacity=".55"/>
+  <rect x="238" y="46" width="4" height="6" fill="#f4efe2" opacity=".6"/>
+  <g transform="translate(132,232)">
+    <rect x="-11" y="-36" width="22" height="34" fill="#ff7a5c"/>
+    <rect x="-14" y="-52" width="28" height="18" fill="#c98d5a"/>
+    <rect x="-8" y="-47" width="6" height="7" fill="#142638"/>
+    <rect x="3" y="-47" width="6" height="7" fill="#142638"/>
+    <rect x="-3" y="-36" width="7" height="5" fill="#142638"/>
+    <rect x="11" y="-42" width="22" height="6" fill="#c98d5a"/>
+    <rect x="30" y="-50" width="14" height="6" fill="#f4efe2"/>
+    <rect x="-13" y="-2" width="10" height="16" fill="#1e3a52"/>
+    <rect x="4" y="-2" width="10" height="16" fill="#1e3a52"/>
+  </g>
+  <g transform="translate(348,232)">
+    <rect x="-11" y="-36" width="22" height="34" fill="#3f7a5a"/>
+    <rect x="-14" y="-52" width="28" height="18" fill="#c98d5a"/>
+    <rect x="-8" y="-47" width="6" height="7" fill="#142638"/>
+    <rect x="3" y="-47" width="6" height="7" fill="#142638"/>
+    <rect x="-3" y="-36" width="7" height="5" fill="#142638"/>
+    <rect x="-33" y="-42" width="22" height="6" fill="#c98d5a"/>
+    <rect x="-44" y="-50" width="14" height="6" fill="#f4efe2"/>
+    <rect x="-13" y="-2" width="10" height="16" fill="#1e3a52"/>
+    <rect x="4" y="-2" width="10" height="16" fill="#1e3a52"/>
+  </g>
+  <g transform="translate(240,110)">
+    <circle cx="0" cy="0" r="6" fill="#f4efe2"/>
+    <circle cx="0" cy="0" r="6" fill="#e8ff8a" opacity=".4"/>
+    <path d="M-5 3 L-11 17 M5 3 L11 17 M0 6 L0 19" stroke="#f4efe2" stroke-width="2.5" fill="none"/>
+  </g>
+  <rect x="292" y="86" width="5" height="30" fill="#e8ff8a" opacity=".5"/>
+  <rect x="188" y="86" width="5" height="30" fill="#e8ff8a" opacity=".5"/>
+</svg>`
+  }
+];
+
+const MOODS = [
+  {id:"semua",  icon:"◈", name:"Semua",          desc:"Lihat keenam game sekaligus.",                    tag:"6 judul"},
+  {id:"duel",   icon:"⚔", name:"Duel Cepat",     desc:"Ronde singkat, refleks tajam, langsung seru.",     tag:"2 judul"},
+  {id:"lari",   icon:"⚡", name:"Lari & Lompat",  desc:"Kejar jarak, lompati rintangan, jangan berhenti.", tag:"2 judul"},
+  {id:"cerita", icon:"◆", name:"Cerita",         desc:"Telusuri, pecahkan teka-teki, temukan sesuatu.",   tag:"1 judul"},
+  {id:"santai", icon:"✿", name:"Santai",         desc:"Tanpa tekanan. Cocok untuk jeda pendek.",          tag:"1 judul"}
+];
+
+/* ---------------- util ---------------- */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => Number(n || 0).toLocaleString("id-ID");
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const HI_KEY = slug => "jek_hi_" + slug;
+const hiOf = slug => { try{ return +(localStorage.getItem(HI_KEY(slug)) || 0) || 0; }catch(e){ return 0; } };
+const moodName = id => (MOODS.filter(m => m.id === id)[0] || {name:id}).name;
+
+/* ---------------- pemain ---------------- */
+const AVATARS = ["🎮","🐉","🌙","🏸","🍳","🛺","🏯","🌶"];
+const PK = "jek_players", AK = "jek_active_player";
+let players = store.get(PK, null);
+if(!Array.isArray(players) || !players.length){
+  players = [
+    {id:"p1", name:"Pemain 01", av:"🎮"},
+    {id:"p2", name:"Tamu",      av:"🌙"}
+  ];
+  store.set(PK, players);
+}
+let activeId = store.get(AK, players[0].id);
+if(!players.some(p => p.id === activeId)) activeId = players[0].id;
+let pendingAv = AVATARS[0];
+
+const activePlayer = () => players.filter(p => p.id === activeId)[0] || players[0];
+
+function renderPlayers(){
+  const box = $("#players");
+  box.innerHTML = players.map(p => `
+    <button class="player" type="button" data-pid="${esc(p.id)}"
+            aria-pressed="${p.id === activeId}" title="Main sebagai ${esc(p.name)}">
+      <span class="pav" aria-hidden="true">${esc(p.av)}</span>
+      <span class="pn">${esc(p.name)}</span>
+    </button>`).join("") +
+    `<button class="player add" type="button" id="addTile" aria-pressed="false" title="Tambah pemain">
+       <span class="pav" aria-hidden="true">＋</span>
+       <span class="pn">Pemain baru</span>
+     </button>`;
+
+  $$(".player[data-pid]", box).forEach(b => b.addEventListener("click", () => {
+    activeId = b.getAttribute("data-pid");
+    store.set(AK, activeId);
+    renderPlayers(); renderWho();
+    toast("Pemain aktif: " + activePlayer().name);
+    $("#screenMsg").textContent = "Siap dimainkan sebagai " + activePlayer().name;
+  }));
+  $("#addTile").addEventListener("click", openAdd);
+}
+
+function renderWho(){
+  const p = activePlayer();
+  $("#whoAv").textContent = p.av;
+  $("#whoNm").innerHTML = esc(p.name) + "<span>Aktif</span>";
+}
+
+function renderAvPick(){
+  $("#avPick").innerHTML = AVATARS.map(a =>
+    `<button type="button" data-av="${esc(a)}" aria-pressed="${a === pendingAv}" aria-label="Avatar ${esc(a)}">${esc(a)}</button>`
+  ).join("");
+  $$("#avPick button").forEach(b => b.addEventListener("click", () => {
+    pendingAv = b.getAttribute("data-av");
+    renderAvPick();
+  }));
+}
+
+function openAdd(){
+  pendingAv = AVATARS[players.length % AVATARS.length];
+  $("#padd").hidden = false;
+  renderAvPick();
+  $("#pName").value = "";
+  $("#pName").focus();
+}
+function closeAdd(){ $("#padd").hidden = true; }
+
+function saveAdd(){
+  const name = ($("#pName").value || "").trim().slice(0, 14) || ("Pemain " + String(players.length + 1).padStart(2, "0"));
+  const p = { id: "p" + Date.now().toString(36), name: name, av: pendingAv };
+  players.push(p);
+  store.set(PK, players);
+  activeId = p.id; store.set(AK, activeId);
+  closeAdd(); renderPlayers(); renderWho();
+  toast("Halo, " + p.name + "!");
+  $("#screenMsg").textContent = "Pemain baru ditambahkan — selamat bermain!";
+}
+
+/* ---------------- suasana ---------------- */
+let mood = "semua";
+function renderMoods(){
+  $("#moods").innerHTML = MOODS.map(m => `
+    <button class="mood" type="button" data-mood="${m.id}" aria-pressed="${m.id === mood}">
+      <span class="mi" aria-hidden="true">${m.icon}</span>
+      <h3>${esc(m.name)}</h3>
+      <p>${esc(m.desc)}</p>
+      <span class="mc">${esc(m.tag)}</span>
+    </button>`).join("");
+  $$("#moods .mood").forEach(b => b.addEventListener("click", () => {
+    mood = b.getAttribute("data-mood");
+    renderMoods(); applyFilter();
+  }));
+}
+
+function applyFilter(){
+  let shown = 0;
+  $$("#grid .card").forEach(c => {
+    const ok = mood === "semua" || c.getAttribute("data-mood") === mood;
+    c.hidden = !ok;
+    if(ok){ shown++; c.classList.add("in"); }
+  });
+  $("#filterNote").innerHTML = mood === "semua"
+    ? "Menampilkan <b>" + shown + "</b> game — semua suasana."
+    : "Suasana <b>" + esc(moodName(mood)) + "</b> — <b>" + shown + "</b> game cocok.";
+}
+
+/* ---------------- grid game ---------------- */
+const slugOf = slug => GAMES.filter(g => g.slug === slug)[0];
+
+function renderGrid(){
+  $("#grid").innerHTML = GAMES.map((g, i) => {
+    const hi = hiOf(g.slug);
+    return `
+    <a class="card reveal" href="/games/${g.slug}/" data-slug="${esc(g.slug)}" data-mood="${esc(g.mood)}"
+       style="transition-delay:${(i % 3) * 60}ms" aria-label="${esc(g.title)} — ${esc(moodName(g.mood))}. Tekan untuk main.">
+      <div class="cover">
+        <span class="idx">${String(i + 1).padStart(2, "0")} / ${String(GAMES.length).padStart(2, "0")}</span>
+        <span class="badge">${esc(moodName(g.mood))}</span>
+        ${g.cover}
+        <span class="scrim" aria-hidden="true"></span>
+        <span class="play">▶ Main</span>
+      </div>
+      <div class="body">
+        <h3>${esc(g.title)}</h3>
+        <p class="desc">${esc(g.desc)}</p>
+        <div class="meta">
+          <span class="ctl"><i aria-hidden="true">⌨</i><i aria-hidden="true">☝</i> Keyboard / Sentuh</span>
+          <span class="${hi > 0 ? "trophy-on" : ""}">${hi > 0 ? "🏆 " + fmt(hi) : "Belum ada rekor"}</span>
+        </div>
+      </div>
+    </a>`;
+  }).join("");
+
+  $$("#grid .card").forEach(c => c.addEventListener("click", () => markRecent(c.getAttribute("data-slug"))));
+}
+
+/* ---------------- trofi ---------------- */
+function renderTrophies(){
+  let open = 0, total = 0;
+  $("#trophies").innerHTML = GAMES.map(g => {
+    const hi = hiOf(g.slug);
+    if(hi > 0){ open++; total += hi; }
+    return `
+    <div class="trophy ${hi > 0 ? "on" : ""}">
+      <span class="tbadge" aria-hidden="true">${hi > 0 ? "🏆" : "🔒"}</span>
+      <div class="td">
+        <h3>${esc(g.title)}</h3>
+        <p>${hi > 0 ? "Rekor " + fmt(hi) : "Belum ada rekor"}</p>
+      </div>
+    </div>`;
+  }).join("");
+
+  $("#troCount").innerHTML = "<em>" + open + "</em>/" + GAMES.length;
+  $("#troTotal").textContent = fmt(total);
+  $("#troMsg").textContent = open === 0
+    ? "Belum ada trofi. Main satu game, rekor pertamamu langsung tersimpan di sini."
+    : (open === GAMES.length
+        ? "Semua trofi terbuka. Luar biasa — sekarang giliran mempertajam rekor."
+        : open + " dari " + GAMES.length + " game sudah punya rekor. Lanjutkan, sisanya menunggu.");
+}
+
+/* ---------------- terbaru dimainkan ---------------- */
+const RK = "jek_recent";
+function recentList(){ const r = store.get(RK, []); return Array.isArray(r) ? r : []; }
+function markRecent(slug){
+  const r = recentList().filter(s => s !== slug);
+  r.unshift(slug);
+  store.set(RK, r.slice(0, 6));
+}
+function renderRecent(){
+  const list = recentList().map(slugOf).filter(Boolean);
+  const box = $("#recent");
+  if(!list.length){
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1">' +
+      "<b>Belum ada riwayat</b>" +
+      "<span>Mulai satu game — judulnya akan muncul di sini.</span></div>";
+    return;
+  }
+  box.innerHTML = list.map(g => {
+    const hi = hiOf(g.slug);
+    return `
+    <a class="rcard" href="/games/${g.slug}/" data-slug="${esc(g.slug)}">
+      <span class="rthumb" aria-hidden="true">${g.cover}</span>
+      <span class="rt">
+        <h3>${esc(g.title)}</h3>
+        <p>${esc(moodName(g.mood))} · ${hi > 0 ? "Rekor " + fmt(hi) : "Belum ada rekor"}</p>
+      </span>
+      <span class="rgo" aria-hidden="true">▶</span>
+    </a>`;
+  }).join("");
+  $$("#recent .rcard").forEach(c => c.addEventListener("click", () => markRecent(c.getAttribute("data-slug"))));
+}
+
+/* ---------------- ticker ---------------- */
+(function ticker(){
+  const items = ["★ 6 game orisinal", "Tanpa install", "Kontrol sentuh siap",
+                 "Jalan offline", "Tanpa CDN", "Sedikit jeda. Banyak main."];
+  const track = $("#tickerTrack");
+  track.innerHTML = "<b>Jekardah Play</b><i>■</i>" +
+    items.map(t => "<span>" + esc(t) + "</span><i>■</i>").join("");
+  track.innerHTML += track.innerHTML;
+})();
+
+/* ---------------- toast ---------------- */
+let toastTimer = null;
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+/* ---------------- jam layar ---------------- */
+function clock(){
+  const d = new Date();
+  $("#screenClock").textContent =
+    String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+/* ---------------- reveal ---------------- */
+function observeReveals(){
+  const els = $$(".reveal:not(.in)");
+  if(!("IntersectionObserver" in window)){
+    els.forEach(el => el.classList.add("in"));
+    return;
+  }
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
+    });
+  }, { threshold:.1, rootMargin:"0px 0px -40px 0px" });
+  els.forEach(el => io.observe(el));
+}
+
+/* ---------------- boot ---------------- */
+function boot(){
+  renderPlayers(); renderWho();
+  renderMoods();
+  renderGrid();
+  renderTrophies();
+  renderRecent();
+  applyFilter();
+  observeReveals();
+  clock();
+  setInterval(clock, 20000);
+
+  $("#pSave").addEventListener("click", saveAdd);
+  $("#pCancel").addEventListener("click", closeAdd);
+  $("#pName").addEventListener("keydown", e => {
+    if(e.key === "Enter"){ e.preventDefault(); saveAdd(); }
+    if(e.key === "Escape"){ closeAdd(); }
+  });
+  $("#whoBtn").addEventListener("click", () => {
+    const s = $("#players");
+    s.scrollIntoView({ block:"center", behavior:"smooth" });
+    const first = $(".player[data-pid]", s);
+    if(first) setTimeout(() => first.focus({ preventScroll:true }), 380);
+  });
+
+  /* segarkan trofi & riwayat saat kembali dari sebuah game */
+  window.addEventListener("pageshow", () => { renderTrophies(); renderRecent(); renderGrid(); applyFilter(); });
+  document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible"){ renderTrophies(); renderRecent(); }
+  });
+}
+
+if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
+</script>
+</body>
+</html>
